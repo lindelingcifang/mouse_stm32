@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"E:/zjunlict/odometer/mouse_stm32/mouse_stm32/build/cmake_install.cmake",
+		"E:/zjunlict/odometer/mouse_stm32/mouse_stm32/build/cmake/stm32cubemx/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
