@@ -1,0 +1,9 @@
+E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/edit_cache.dir
+E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/rebuild_cache.dir
+E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/Board/CMakeFiles/CM4_stm32_RTOS.dir
+E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/Board/CMakeFiles/edit_cache.dir
+E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/Board/CMakeFiles/rebuild_cache.dir
+E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
+E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir
+E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/Board/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
+E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/Board/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir
