@@ -110,6 +110,7 @@ void StartCrtlTask(void *argument) {
             ctrl_end_tick = TIM2->CNT;
             // Control loop execution time can be monitored here
             volatile uint32_t exec_time = (ctrl_end_tick >= ctrl_start_tick) ? (ctrl_end_tick - ctrl_start_tick) : (0xFFFFFFFF - ctrl_start_tick + ctrl_end_tick);
+            (void)exec_time; // Suppress unused variable warning
         }
     }
 }

@@ -19,6 +19,8 @@ float e, f;
 float all;
 float imu_angle_z;
 float imu_omega_z;
+float L_X, L_Y;
+float dx_rot, dy_rot;
 
 
 extern "C" {
@@ -66,6 +68,10 @@ void StartOptFlowRxTask(void *argument) {
             e = state.e;
             f = state.f;
             all = state.all_distance;
+            L_X = state.L_X;
+            L_Y = state.L_Y;
+            dx_rot = state.dx_rot;
+            dy_rot = state.dy_rot;
                 
             //     osMutexRelease(mtx_robot_stateHandle);
             // }

@@ -6,8 +6,8 @@
 #include <cstdint>
 #include <cstddef>
 
-#define OPTFLOW_OFFSET_X (115.0f)
-#define OPTFLOW_OFFSET_Y (10.5f)
+#define OPTFLOW_OFFSET_X (118.0f)
+#define OPTFLOW_OFFSET_Y (12.0f)
 
 class OptFlow {
 public:
@@ -40,6 +40,10 @@ public:
         float e;
         float f;
         float all_distance;
+        float L_X;
+        float L_Y;
+        float dx_rot;
+        float dy_rot;
     };
     
     OptFlow();
@@ -51,8 +55,8 @@ public:
     void reset();
     
 private:
-    static constexpr float OFFSET_X = -115.0f;
-    static constexpr float OFFSET_Y = 10.5f;
+    static constexpr float OFFSET_X = -121.0f;
+    static constexpr float OFFSET_Y = 13.5f;
     static constexpr float MIN_DT = 0.001f;
     static constexpr float MAX_DT = 0.1f;
     

@@ -191,6 +191,51 @@ void Kalman2DPosVel::updatePos(float px_meas, float py_meas) {
 
 
 
+// 3阶滑动中值滤波器：去除尖刺神器，且延迟极低(1个采样周期)
+class MedianFilter3 {
+public:
+    MedianFilter3() { reset(); }
+
+    void reset() {
+        buffer_[0] = 0.0f;
+        buffer_[1] = 0.0f;
+        buffer_[2] = 0.0f;
+        idx_ = 0;
+    }
+
+    float update(float input) {
+        // 存入环形缓冲区
+        buffer_[idx_] = input;
+        idx_ = (idx_ + 1) % 3;
+
+        // 复制数据用于排序
+        float a = buffer_[0];
+        float b = buffer_[1];
+        float c = buffer_[2];
+
+        // 排序网络 (Sorting Network) 找出中值
+        // 只需要找出中间那个数，不需要完全排序
+        if (a > b) { float t = a; a = b; b = t; } // swap(a,b)
+        if (b > c) { float t = b; b = c; c = t; } // swap(b,c)
+        if (a > b) { float t = a; a = b; b = t; } // swap(a,b)
+        
+        return b; // b 就是中值
+    }
+
+private:
+    float buffer_[3];
+    uint8_t idx_;
+};
+
+static MedianFilter3 mf_vx, mf_vy;
+
+// IMU加速度与光流速度融合的卡尔曼滤波
+static Kalman2DPosVel kf_pose;
+static bool kf_pose_inited = false;
+static float kf_last_px = 0.0f;
+static float kf_last_py = 0.0f;
+static float last_imu_angle_z = 0.0f;
+
 OptFlow::OptFlow() : initialized_(false) {
     memset(&state_, 0, sizeof(state_));
 }
@@ -198,13 +243,11 @@ OptFlow::OptFlow() : initialized_(false) {
 void OptFlow::reset() {
     memset(&state_, 0, sizeof(state_));
     initialized_ = false;
+    kf_pose_inited = false;
+    mf_vx.reset();
+    mf_vy.reset();
+    last_imu_angle_z = 0.0f;
 }
-
-// IMU加速度与光流速度融合的卡尔曼滤波
-static Kalman2DPosVel kf_pose;
-static bool kf_pose_inited = false;
-static float kf_last_px = 0.0f;
-static float kf_last_py = 0.0f;
 
 void OptFlow::process(const Data_t& sensor_data, float imu_omega_z, float imu_angle_z, float imu_acc_x, float imu_acc_y) {
     // Update timestamp
@@ -222,6 +265,9 @@ void OptFlow::process(const Data_t& sensor_data, float imu_omega_z, float imu_an
         state_.last_time_ms = state_.time_ms;
         state_.last_time_us = state_.time_us;
         kf_pose_inited = false;
+        mf_vx.reset();
+        mf_vy.reset();
+        last_imu_angle_z = imu_angle_z;
         initialized_ = true;
         return;
     }
@@ -248,20 +294,39 @@ void OptFlow::process(const Data_t& sensor_data, float imu_omega_z, float imu_an
     state_.dt_s = dt_s;
     
     // Get IMU yaw rate for rigid-body correction
-    state_.delta_yaw = dt_s * imu_omega_z / 180.0f * PI;
+    // 使用角速度积分计算偏航角变化量，比角度差分更平滑
+    state_.delta_yaw = imu_omega_z * dt_s * PI / 180.0f;
+    
+    last_imu_angle_z = imu_angle_z;
     
     // Rigid-body correction
-    float cosdt = cosf(state_.delta_yaw);
-    float sindt = sinf(state_.delta_yaw);
+    // float cosdt = cosf(state_.delta_yaw);
+    // float sindt = sinf(state_.delta_yaw);
+    float sindt = state_.delta_yaw - (state_.delta_yaw * state_.delta_yaw * state_.delta_yaw) / 6.0f; // 小角度近似sin(x)=x
+    float cosdt = 1.0f - (state_.delta_yaw * state_.delta_yaw) / 2.0f + (state_.delta_yaw * state_.delta_yaw * state_.delta_yaw * state_.delta_yaw) / 24.0f;        // 小角度近似cos(x)=1
     float dx_rot = (cosdt - 1.0f) * OFFSET_X - sindt * OFFSET_Y;
     float dy_rot = sindt * OFFSET_X + (cosdt - 1.0f) * OFFSET_Y;
+    state_.dx_rot = dx_rot;
+    state_.dy_rot = dy_rot;
     state_.e = state_.delta_x - dx_rot;
     state_.f = state_.delta_y - dy_rot;
+    if (fabsf(state_.delta_yaw) > 0) {
+        float L_X = state_.delta_x/state_.delta_yaw;
+        float L_Y = state_.delta_y/state_.delta_yaw;
+        state_.L_X = L_X;
+        state_.L_Y = L_Y;
+    }
+    
     
     // Compute velocities
     state_.raw_vx = state_.e / dt_s;
     state_.raw_vy = state_.f / dt_s;
     state_.raw_omega = state_.delta_yaw / dt_s;
+    
+    // 对原始速度进行低通滤波，减少尖刺
+    // 使用3点中值滤波去除尖刺，延迟极低（仅1ms左右），相位滞后可以忽略不计
+    float filtered_vx = mf_vx.update(state_.raw_vx);
+    float filtered_vy = mf_vy.update(state_.raw_vy);
     
     state_.angle = atan2f(state_.e, state_.f);
 
@@ -269,7 +334,7 @@ void OptFlow::process(const Data_t& sensor_data, float imu_omega_z, float imu_an
     if (!kf_pose_inited) {
         // q_pos: 位置过程噪声, q_vel: 速度过程噪声, r_vel: 光流速度观测噪声
         kf_pose.setNoise(1e-3f, 5.0f, 200.0f, 1e6f);
-        kf_pose.init(0.0f, 0.0f, state_.raw_vx, state_.raw_vy, 100.0f);
+        kf_pose.init(0.0f, 0.0f, filtered_vx, filtered_vy, 100.0f);
         kf_last_px = kf_pose.px();
         kf_last_py = kf_pose.py();
         kf_pose_inited = true;
@@ -277,8 +342,8 @@ void OptFlow::process(const Data_t& sensor_data, float imu_omega_z, float imu_an
 
     // 预测：用 IMU 加速度
     kf_pose.predict(imu_acc_x, imu_acc_y, dt_s);
-    // 用光流速度测量
-    kf_pose.updateVel(state_.raw_vx, state_.raw_vy);
+    // 用滤波后的光流速度测量
+    kf_pose.updateVel(filtered_vx, filtered_vy);
 
     // 机器人坐标系下的位移增量（由卡尔曼位置状态差分得到）
     float de_est = kf_pose.px() - kf_last_px;
