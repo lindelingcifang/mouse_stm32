@@ -3,7 +3,7 @@ set(CMAKE_HOST_SYSTEM_NAME "Windows")
 set(CMAKE_HOST_SYSTEM_VERSION "10.0.26100")
 set(CMAKE_HOST_SYSTEM_PROCESSOR "AMD64")
 
-include("E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/cmake/gcc-arm-none-eabi.cmake")
+include("E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/cmake/gcc-arm-none-eabi.cmake")
 
 set(CMAKE_SYSTEM "Generic")
 set(CMAKE_SYSTEM_NAME "Generic")

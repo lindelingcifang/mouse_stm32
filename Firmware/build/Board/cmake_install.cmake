@@ -1,4 +1,4 @@
-# Install script for directory: E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Board
+# Install script for directory: E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Board
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -39,6 +39,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/Board/cmake/stm32cubemx/cmake_install.cmake")
+  include("E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/Board/cmake/stm32cubemx/cmake_install.cmake")
 endif()
 
