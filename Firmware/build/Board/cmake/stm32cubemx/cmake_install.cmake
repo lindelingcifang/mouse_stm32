@@ -1,4 +1,4 @@
-# Install script for directory: E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Board/cmake/stm32cubemx
+# Install script for directory: E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Board/cmake/stm32cubemx
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

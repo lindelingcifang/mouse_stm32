@@ -3,202 +3,202 @@
 cmake_policy(SET CMP0009 NEW)
 
 # GENERAL_HEADERS at CMakeLists.txt:54 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/*.h")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/*.h")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/freertos_vars.h"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/freertos_vars.h"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # GENERAL_HEADERS at CMakeLists.txt:54 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/*.hpp")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/*.hpp")
 set(OLD_GLOB
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMMUNICATION_SOURCES at CMakeLists.txt:36 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/*.c")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/*.c")
 set(OLD_GLOB
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMMUNICATION_SOURCES at CMakeLists.txt:36 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/*.cpp")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/*.cpp")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/communication.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/communication.cpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMMUNICATION_HEADERS at CMakeLists.txt:42 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/*.h")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/*.h")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/communication.h"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/communication.h"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMMUNICATION_HEADERS at CMakeLists.txt:42 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/*.hpp")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/*.hpp")
 set(OLD_GLOB
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMMUNICATION_SOURCES at CMakeLists.txt:36 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/can/*.cpp")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/can/*.cpp")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/can/can_simple.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/can/z_can.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/can/can_simple.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/can/z_can.cpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMMUNICATION_HEADERS at CMakeLists.txt:42 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/can/*.h")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/can/*.h")
 set(OLD_GLOB
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMMUNICATION_HEADERS at CMakeLists.txt:42 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/can/*.hpp")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/can/*.hpp")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/can/can_helpers.hpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/can/can_simple.hpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/can/canbus.hpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Communication/can/z_can.hpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/can/can_helpers.hpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/can/can_simple.hpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/can/canbus.hpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Communication/can/z_can.hpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMPONENT_SOURCES at CMakeLists.txt:26 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/*.c")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/*.c")
 set(OLD_GLOB
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMPONENT_SOURCES at CMakeLists.txt:26 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/*.cpp")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/*.cpp")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/imu.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/motor.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/opt_flow.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/robot.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/imu.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/motor.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/opt_flow.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/robot.cpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMPONENT_HEADERS at CMakeLists.txt:31 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/*.h")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/*.h")
 set(OLD_GLOB
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # COMPONENT_HEADERS at CMakeLists.txt:31 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/*.hpp")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/*.hpp")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/imu.hpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/motor.hpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/opt_flow.hpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Component/robot.hpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/imu.hpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/motor.hpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/opt_flow.hpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Component/robot.hpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # INTERFACE_HEADERS at CMakeLists.txt:49 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Interface/*.h")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Interface/*.h")
 set(OLD_GLOB
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # INTERFACE_HEADERS at CMakeLists.txt:49 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Interface/*.hpp")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Interface/*.hpp")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Interface/interfaces.hpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Interface/interfaces.hpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # TASK_SOURCES at CMakeLists.txt:16 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/*.c")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/*.c")
 set(OLD_GLOB
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # TASK_SOURCES at CMakeLists.txt:16 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/*.cpp")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/*.cpp")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/can_callbacks.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/ctrl_task.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/health_task.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/imu_task.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/main.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/motor_task.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/optflow_task.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/spi_task.cpp"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/telemetry_task.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/can_callbacks.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/ctrl_task.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/health_task.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/imu_task.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/main.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/motor_task.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/optflow_task.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/spi_task.cpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/telemetry_task.cpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # TASK_HEADERS at CMakeLists.txt:21 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/*.h")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/*.h")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/can_callbacks.h"
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/z_main.h"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/can_callbacks.h"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/z_main.h"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
 
 # TASK_HEADERS at CMakeLists.txt:21 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/*.hpp")
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/*.hpp")
 set(OLD_GLOB
-  "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/Task/utils.hpp"
+  "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/Task/utils.hpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "E:/zjunlict/2025/cm4_stm32_RTOS1/cm4_stm32_RTOS/Firmware/build/CMakeFiles/cmake.verify_globs")
+  file(TOUCH_NOCREATE "E:/zjunlict/mouse/stm32_dual_mouse/mouse_stm32/Firmware/build/CMakeFiles/cmake.verify_globs")
 endif()
