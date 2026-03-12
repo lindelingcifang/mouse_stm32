@@ -6,17 +6,68 @@
 #include <cstdint>
 #include <cstddef>
 
-#define OPTFLOW_OFFSET_X (118.0f)
-#define OPTFLOW_OFFSET_Y (12.0f)
+// ============================================================
+// [MODIFIED] 双光流传感器间距参数
+//   原: OPTFLOW_OFFSET_X / OPTFLOW_OFFSET_Y (单光流安装偏移)
+//   现: 双光流基线半长，单位 mm，对应 md 推导中的 l
+// ============================================================
+#define OPTFLOW_HALF_BASELINE_MM (16.3f)
+
+// [UNCHANGED] valid_mask 位定义
+#define OPTFLOW_MASK_LEFT  (0x01u)
+#define OPTFLOW_MASK_RIGHT (0x02u)
 
 class OptFlow {
 public:
+    // ============================================================
+    // [MODIFIED] Data_t: 单光流单路输入 -> 双光流双路输入
+    //   原字段: float x, y
+    //   现字段: left_x/y, right_x/y, tick_ms, valid_mask
+    // ============================================================
     struct Data_t {
-        float x;
-        float y;
+        float        left_x;
+        float        left_y;
+        float        right_x;
+        float        right_y;
+        unsigned int tick_ms;
+        unsigned int valid_mask;
     };
-    
+
+    // ============================================================
+    // [MODIFIED] State_t: 重构为双光流输出
+    //   保留: time_ms, last_time_ms, dt_s（时间相关）
+    //   新增: left_vx/vy, right_vx/vy（左右传感器各自速度）
+    //         body_vx/vy（机器人本体速度，由 md 推导 dx_robot/dt）
+    //         omega_z（机器人角速度，dtheta/dt）
+    //         raw_dtheta（每帧角度增量，调试用）
+    //   注释掉: 单光流相关字段（raw_x/y, delta_x/y, global_x/y 等）
+    //           卡尔曼相关字段（global_vx/vy 等）
+    //           待 IMU 引入后可恢复
+    // ============================================================
     struct State_t {
+        // 左右传感器各自速度（调试用）
+        float left_vx;
+        float left_vy;
+        float right_vx;
+        float right_vy;
+
+        // 机器人本体速度（md 推导结果）
+        float body_vx;   // dx_robot / dt，前进方向
+        float body_vy;   // dy_robot / dt，横移方向
+        float omega_z;   // dtheta / dt，偏航角速度 rad/s
+
+        // 每帧原始角度增量（调试用）
+        float raw_dtheta;
+
+        // 时间
+        unsigned int time_ms;
+        unsigned int last_time_ms;
+        float        dt_s;
+
+        /* -------------------------------------------------------
+         * [COMMENTED OUT] 单光流时代的状态字段，暂时不用
+         * 待后续加入 IMU / 全局位姿估计时恢复
+         * -------------------------------------------------------
         float raw_x;
         float raw_y;
         float last_x;
@@ -30,11 +81,8 @@ public:
         float raw_vx;
         float raw_vy;
         float raw_omega;
-        uint32_t time_ms;
-        uint32_t last_time_ms;
         uint32_t time_us;
         uint32_t last_time_us;
-        float dt_s;
         float delta_yaw;
         float angle;
         float e;
@@ -44,26 +92,56 @@ public:
         float L_Y;
         float dx_rot;
         float dy_rot;
+         * ------------------------------------------------------- */
     };
-    
+
     OptFlow();
     ~OptFlow() = default;
-    
-    void process(const Data_t& sensor_data, float imu_omega_z, float imu_angle_z);
-    void process(const Data_t& sensor_data, float imu_omega_z, float imu_angle_z, float imu_acc_x, float imu_acc_y);
+
+    // ============================================================
+    // [MODIFIED] process 接口
+    //   原: process(Data_t, imu_omega_z, imu_angle_z [, imu_acc_x, imu_acc_y])
+    //   现: process(Data_t)，暂不需要 IMU 参数
+    // ============================================================
+    void process(const Data_t& sensor_data);
+
     const State_t& get_state() const { return state_; }
     void reset();
-    
+
 private:
-    static constexpr float OFFSET_X = -121.0f;
-    static constexpr float OFFSET_Y = 13.5f;
-    static constexpr float MIN_DT = 0.001f;
-    static constexpr float MAX_DT = 0.1f;
-    
-    State_t state_;
-    bool initialized_;
+    // ============================================================
+    // [MODIFIED] 常量
+    //   原: OFFSET_X/Y（单光流安装偏移，用于刚体修正）
+    //   现: HALF_BASELINE（双光流基线半长）
+    // ============================================================
+    static constexpr float HALF_BASELINE = OPTFLOW_HALF_BASELINE_MM;
+    static constexpr float MIN_DT = 0.001f;   // [UNCHANGED]
+    static constexpr float MAX_DT = 0.1f;     // [UNCHANGED]
+
+    State_t      state_;
+
+    // ============================================================
+    // [MODIFIED] 初始化标志：拆分为左右独立
+    //   原: bool initialized_（单个共享标志，有突变风险）
+    //   现: 左右各自独立，某侧第一帧只记录位置不输出速度，
+    //       避免另一侧延迟上线时 last 值为 0 导致速度尖峰
+    // ============================================================
+    bool         left_initialized_;
+    bool         right_initialized_;
+
+    // [NEW] 上一帧左右传感器位置和时间戳
+    float        left_last_x_;
+    float        left_last_y_;
+    float        right_last_x_;
+    float        right_last_y_;
+    unsigned int last_time_ms_;
 };
 
+// ============================================================
+// [COMMENTED OUT] Kalman1D —— 单光流 IMU 融合用，暂不启用
+//   待引入 IMU 后取消注释
+// ============================================================
+/*
 class Kalman1D {
 public:
     Kalman1D(float Q = 0.01f, float R = 1.0f, float P = 1.0f, float x0 = 0.0f);
@@ -76,7 +154,13 @@ private:
     float P;
     float x;
 };
+*/
 
+// ============================================================
+// [COMMENTED OUT] Kalman2DPosVel —— 单光流 IMU 融合用，暂不启用
+//   待引入 IMU 后取消注释
+// ============================================================
+/*
 class Kalman2DPosVel {
 public:
     Kalman2DPosVel();
@@ -96,5 +180,6 @@ private:
     float Rv_[2];
     float Rp_[2];
 };
+*/
 
 #endif // __OPT_FLOW_HPP

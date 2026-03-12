@@ -1,15 +1,29 @@
-#include "opt_flow.hpp"
-void OptFlow::process(const OptFlow::Data_t& sensor_data, float imu_omega_z, float imu_angle_z) {
-    this->process(sensor_data, imu_omega_z, imu_angle_z, 0.0f, 0.0f);
-}
+// ============================================================
+// [MODIFIED] opt_flow1.cpp
+//   原: 单光流 + IMU 卡尔曼融合
+//   现: 双光流速度估计（无 IMU），卡尔曼相关代码保留但注释掉
+// ============================================================
+
+#include "opt_flow1.hpp"
 #include <cmath>
 #include <cstring>
 #include "stm32f4xx_hal.h"
 
+// ============================================================
+// [COMMENTED OUT] 原单光流兼容接口（带 IMU 参数的重载）
+//   待引入 IMU 后可恢复
+// ============================================================
+/*
+void OptFlow::process(const OptFlow::Data_t& sensor_data, float imu_omega_z, float imu_angle_z) {
+    this->process(sensor_data, imu_omega_z, imu_angle_z, 0.0f, 0.0f);
+}
+*/
 
-//Kalman1D & Kalman2DPosVel Implementation
 
-// 一维卡尔曼滤波器实现
+// ============================================================
+// [COMMENTED OUT] Kalman1D 实现 —— 暂不启用，原代码完整保留
+// ============================================================
+/*
 Kalman1D::Kalman1D(float Q_, float R_, float P_, float x0)
     : Q(Q_), R(R_), P(P_), x(x0) {}
 
@@ -27,8 +41,13 @@ float Kalman1D::update(float z) {
     P = (1.0f - K) * P;
     return x;
 }
+*/
 
-// 二维位置-速度卡尔曼滤波器实现
+
+// ============================================================
+// [COMMENTED OUT] Kalman2DPosVel 实现 —— 暂不启用，原代码完整保留
+// ============================================================
+/*
 Kalman2DPosVel::Kalman2DPosVel() {
     setNoise(0.01f, 1.0f, 100.0f, 1e6f);
     init(0.0f, 0.0f, 0.0f, 0.0f, 100.0f);
@@ -188,184 +207,277 @@ void Kalman2DPosVel::updatePos(float px_meas, float py_meas) {
     Pn[13] = P_[13] - (K6 * P_[1] + K7 * P_[5]);
     for (int i = 0; i < 16; ++i) P_[i] = Pn[i];
 }
+*/
 
 
-
-// 3阶滑动中值滤波器：去除尖刺神器，且延迟极低(1个采样周期)
+// ============================================================
+// [COMMENTED OUT] MedianFilter3 —— 原单光流速度滤波，暂不启用
+//   待后续需要对双光流速度滤波时可恢复
+// ============================================================
+/*
 class MedianFilter3 {
 public:
     MedianFilter3() { reset(); }
-
     void reset() {
-        buffer_[0] = 0.0f;
-        buffer_[1] = 0.0f;
-        buffer_[2] = 0.0f;
+        buffer_[0] = 0.0f; buffer_[1] = 0.0f; buffer_[2] = 0.0f;
         idx_ = 0;
     }
-
     float update(float input) {
-        // 存入环形缓冲区
         buffer_[idx_] = input;
         idx_ = (idx_ + 1) % 3;
-
-        // 复制数据用于排序
-        float a = buffer_[0];
-        float b = buffer_[1];
-        float c = buffer_[2];
-
-        // 排序网络 (Sorting Network) 找出中值
-        // 只需要找出中间那个数，不需要完全排序
-        if (a > b) { float t = a; a = b; b = t; } // swap(a,b)
-        if (b > c) { float t = b; b = c; c = t; } // swap(b,c)
-        if (a > b) { float t = a; a = b; b = t; } // swap(a,b)
-        
-        return b; // b 就是中值
+        float a = buffer_[0], b = buffer_[1], c = buffer_[2];
+        if (a > b) { float t = a; a = b; b = t; }
+        if (b > c) { float t = b; b = c; c = t; }
+        if (a > b) { float t = a; a = b; b = t; }
+        return b;
     }
-
 private:
     float buffer_[3];
     uint8_t idx_;
 };
-
 static MedianFilter3 mf_vx, mf_vy;
+*/
 
-// IMU加速度与光流速度融合的卡尔曼滤波
+// ============================================================
+// [COMMENTED OUT] 原单光流卡尔曼全局实例 —— 暂不启用
+// ============================================================
+/*
 static Kalman2DPosVel kf_pose;
 static bool kf_pose_inited = false;
 static float kf_last_px = 0.0f;
 static float kf_last_py = 0.0f;
 static float last_imu_angle_z = 0.0f;
+*/
 
-OptFlow::OptFlow() : initialized_(false) {
+
+// ============================================================
+// [MODIFIED] 构造函数
+//   原: initialized_(false) 单标志
+//   现: left_initialized_/right_initialized_ 各自独立
+// ============================================================
+OptFlow::OptFlow() : left_initialized_(false), right_initialized_(false),
+                     left_last_x_(0.0f), left_last_y_(0.0f),
+                     right_last_x_(0.0f), right_last_y_(0.0f),
+                     last_time_ms_(0) {
     memset(&state_, 0, sizeof(state_));
 }
 
+// ============================================================
+// [MODIFIED] reset()
+//   原: 重置 state_、initialized_、卡尔曼、中值滤波
+//   现: 重置 state_、initialized_、双光流私有成员
+//        卡尔曼/中值滤波重置保留在注释中
+// ============================================================
 void OptFlow::reset() {
     memset(&state_, 0, sizeof(state_));
-    initialized_ = false;
-    kf_pose_inited = false;
-    mf_vx.reset();
-    mf_vy.reset();
-    last_imu_angle_z = 0.0f;
+    // [MODIFIED] 原: initialized_ = false; 现: 左右独立重置
+    left_initialized_  = false;
+    right_initialized_ = false;
+    left_last_x_  = 0.0f;
+    left_last_y_  = 0.0f;
+    right_last_x_ = 0.0f;
+    right_last_y_ = 0.0f;
+    last_time_ms_ = 0;
+    // [COMMENTED OUT] 卡尔曼 / 中值滤波重置
+    // kf_pose_inited = false;
+    // mf_vx.reset();
+    // mf_vy.reset();
+    // last_imu_angle_z = 0.0f;
 }
 
-void OptFlow::process(const Data_t& sensor_data, float imu_omega_z, float imu_angle_z, float imu_acc_x, float imu_acc_y) {
-    // Update timestamp
-    state_.time_ms = HAL_GetTick();
-    state_.time_us = TIM13->CNT;
-    
-    // Store raw data (axes swapped in hardware)
-    state_.raw_x = sensor_data.y;
-    state_.raw_y = sensor_data.x;
-    
-    // First sample guard
-    if (!initialized_) {
-        state_.last_x = state_.raw_x;
-        state_.last_y = state_.raw_y;
-        state_.last_time_ms = state_.time_ms;
-        state_.last_time_us = state_.time_us;
-        kf_pose_inited = false;
-        mf_vx.reset();
-        mf_vy.reset();
-        last_imu_angle_z = imu_angle_z;
-        initialized_ = true;
+// ============================================================
+// [NEW] process(Data_t) —— 双光流速度估计主函数
+//   输入: 左右传感器位置快照 + 时间戳 + valid_mask
+//   输出: state_.body_vx/vy, state_.omega_z
+//         state_.left_vx/vy, state_.right_vx/vy（调试）
+//
+//   推导来源: 双光流计方案.md
+//     传感器安装坐标: 左 (0, +l)，右 (0, -l)
+//     dx_robot = (dx1 + dx2) / 2
+//     dy_robot = (dy1 + dy2) / 2
+//     dtheta   = arcsin((dx2 - dx1) / (2*l))
+//     vx = dx_robot / dt,  vy = dy_robot / dt,  omega = dtheta / dt
+// ============================================================
+void OptFlow::process(const Data_t& data) {
+
+    state_.time_ms = data.tick_ms;
+
+    const bool have_left  = (data.valid_mask & OPTFLOW_MASK_LEFT)  != 0u;
+    const bool have_right = (data.valid_mask & OPTFLOW_MASK_RIGHT) != 0u;
+
+    // ----------------------------------------------------------
+    // [MODIFIED] 左右独立初始化
+    //   原: 单个 initialized_ 标志，首帧若某侧不在线则 last 值停留在
+    //       0.0f，该侧上线后第一帧会算出巨大假位移
+    //   现: 左右各自判断，某侧第一次收到有效数据时只记录位置、
+    //       置已初始化标志，下一帧才参与差分计算
+    // ----------------------------------------------------------
+    bool left_just_inited  = false;
+    bool right_just_inited = false;
+
+    if (have_left && !left_initialized_) {
+        left_last_x_      = data.left_x;
+        left_last_y_      = data.left_y;
+        left_initialized_ = true;
+        left_just_inited  = true;
+    }
+    if (have_right && !right_initialized_) {
+        right_last_x_      = data.right_x;
+        right_last_y_      = data.right_y;
+        right_initialized_ = true;
+        right_just_inited  = true;
+    }
+
+    // 两侧都还没初始化，直接记时间返回
+    if (!left_initialized_ && !right_initialized_) {
+        last_time_ms_       = data.tick_ms;
+        state_.last_time_ms = data.tick_ms;
         return;
     }
-    
-    // Compute delta
-    state_.delta_x = state_.raw_x - state_.last_x;
-    state_.delta_y = state_.raw_y - state_.last_y;
-    state_.all_distance += sqrtf(state_.delta_x * state_.delta_x + state_.delta_y * state_.delta_y);
-    
-    // Compute dt in seconds
-    // uint32_t t0 = state_.last_time_ms;
-    // uint32_t t1 = state_.time_ms;
-    // uint32_t dt_ms = (t1 >= t0) ? (t1 - t0) : (t1 + (0xFFFFFFFFu - t0) + 1u);
-    // float dt_s = static_cast<float>(dt_ms) / 1000.0f;
-
-    uint32_t t0 = state_.last_time_us;
-    uint32_t t1 = state_.time_us;
-    uint32_t dt_us = (t1 >= t0) ? (t1 - t0) : (t1 + ((1<<16) - t0) + 1u);
-    float dt_s = static_cast<float>(dt_us) / 1000000.0f;
-    
-    // Clamp dt
-    if (dt_s < MIN_DT) dt_s = MIN_DT;
-    if (dt_s > MAX_DT) dt_s = MAX_DT;
-    state_.dt_s = dt_s;
-    
-    // Get IMU yaw rate for rigid-body correction
-    // 使用角速度积分计算偏航角变化量，比角度差分更平滑
-    state_.delta_yaw = imu_omega_z * dt_s * PI / 180.0f;
-    
-    last_imu_angle_z = imu_angle_z;
-    
-    // Rigid-body correction
-    // float cosdt = cosf(state_.delta_yaw);
-    // float sindt = sinf(state_.delta_yaw);
-    float sindt = state_.delta_yaw - (state_.delta_yaw * state_.delta_yaw * state_.delta_yaw) / 6.0f; // 小角度近似sin(x)=x
-    float cosdt = 1.0f - (state_.delta_yaw * state_.delta_yaw) / 2.0f + (state_.delta_yaw * state_.delta_yaw * state_.delta_yaw * state_.delta_yaw) / 24.0f;        // 小角度近似cos(x)=1
-    float dx_rot = (cosdt - 1.0f) * OFFSET_X - sindt * OFFSET_Y;
-    float dy_rot = sindt * OFFSET_X + (cosdt - 1.0f) * OFFSET_Y;
-    state_.dx_rot = dx_rot;
-    state_.dy_rot = dy_rot;
-    state_.e = state_.delta_x - dx_rot;
-    state_.f = state_.delta_y - dy_rot;
-    if (fabsf(state_.delta_yaw) > 0) {
-        float L_X = state_.delta_x/state_.delta_yaw;
-        float L_Y = state_.delta_y/state_.delta_yaw;
-        state_.L_X = L_X;
-        state_.L_Y = L_Y;
-    }
-    
-    
-    // Compute velocities
-    state_.raw_vx = state_.e / dt_s;
-    state_.raw_vy = state_.f / dt_s;
-    state_.raw_omega = state_.delta_yaw / dt_s;
-    
-    // 对原始速度进行低通滤波，减少尖刺
-    // 使用3点中值滤波去除尖刺，延迟极低（仅1ms左右），相位滞后可以忽略不计
-    float filtered_vx = mf_vx.update(state_.raw_vx);
-    float filtered_vy = mf_vy.update(state_.raw_vy);
-    
-    state_.angle = atan2f(state_.e, state_.f);
-
-    //卡尔曼滤波融合
-    if (!kf_pose_inited) {
-        // q_pos: 位置过程噪声, q_vel: 速度过程噪声, r_vel: 光流速度观测噪声
-        kf_pose.setNoise(1e-3f, 5.0f, 200.0f, 1e6f);
-        kf_pose.init(0.0f, 0.0f, filtered_vx, filtered_vy, 100.0f);
-        kf_last_px = kf_pose.px();
-        kf_last_py = kf_pose.py();
-        kf_pose_inited = true;
+    // 本帧有任意一侧刚刚完成初始化，只更新时间，不输出速度
+    if (left_just_inited || right_just_inited) {
+        last_time_ms_       = data.tick_ms;
+        state_.last_time_ms = data.tick_ms;
+        return;
     }
 
+    // ----------------------------------------------------------
+    // 计算 dt（处理 uint32 溢出回绕）
+    // ----------------------------------------------------------
+    unsigned int t0 = last_time_ms_;
+    unsigned int t1 = data.tick_ms;
+    unsigned int dt_ms = (t1 >= t0) ? (t1 - t0)
+                                     : (t1 + (0xFFFFFFFFu - t0) + 1u);
+    float dt_s = static_cast<float>(dt_ms) / 1000.0f;
+
+    // 超出合理范围则跳过本帧，避免速度异常
+    if (dt_s < MIN_DT || dt_s > MAX_DT) {
+        last_time_ms_      = data.tick_ms;
+        state_.last_time_ms = data.tick_ms;
+        return;
+    }
+    state_.dt_s         = dt_s;
+    state_.last_time_ms = last_time_ms_;
+
+    // ----------------------------------------------------------
+    // 根据 valid_mask 分情况处理
+    // ----------------------------------------------------------
+    if (have_left && have_right) {
+        // ======================================================
+        // 双路有效：完整推导
+        // ======================================================
+
+        // 各传感器位移增量
+        float dx1 = data.left_x  - left_last_x_;
+        float dy1 = data.left_y  - left_last_y_;
+        float dx2 = data.right_x - right_last_x_;
+        float dy2 = data.right_y - right_last_y_;
+
+        // 左右传感器各自速度（调试用）
+        state_.left_vx  = dx1 / dt_s;
+        state_.left_vy  = dy1 / dt_s;
+        state_.right_vx = dx2 / dt_s;
+        state_.right_vy = dy2 / dt_s;
+
+        // 机器人本体位移（md 推导）
+        float dx_robot = 0.5f * (dx1 + dx2);
+        float dy_robot = 0.5f * (dy1 + dy2);
+
+        // 偏航角增量（asinf 输入需限幅到 [-1,1] 防止 NaN）
+        float sin_arg = (dx2 - dx1) / (2.0f * HALF_BASELINE);
+        if (sin_arg >  1.0f) sin_arg =  1.0f;
+        if (sin_arg < -1.0f) sin_arg = -1.0f;
+        float dtheta = asinf(sin_arg);
+        state_.raw_dtheta = dtheta;
+
+        // 机器人本体速度
+        state_.body_vx = dx_robot / dt_s;
+        state_.body_vy = dy_robot / dt_s;
+        state_.omega_z = dtheta   / dt_s;
+
+    } else if (have_left) {
+        // ======================================================
+        // 仅左路有效：退化为单传感器，omega_z 置零
+        // ======================================================
+        float dx1 = data.left_x - left_last_x_;
+        float dy1 = data.left_y - left_last_y_;
+
+        state_.left_vx  = dx1 / dt_s;
+        state_.left_vy  = dy1 / dt_s;
+        state_.right_vx = 0.0f;
+        state_.right_vy = 0.0f;
+
+        state_.body_vx    = dx1 / dt_s;
+        state_.body_vy    = dy1 / dt_s;
+        state_.omega_z    = 0.0f;
+        state_.raw_dtheta = 0.0f;
+
+    } else if (have_right) {
+        // ======================================================
+        // 仅右路有效：退化为单传感器，omega_z 置零
+        // ======================================================
+        float dx2 = data.right_x - right_last_x_;
+        float dy2 = data.right_y - right_last_y_;
+
+        state_.left_vx  = 0.0f;
+        state_.left_vy  = 0.0f;
+        state_.right_vx = dx2 / dt_s;
+        state_.right_vy = dy2 / dt_s;
+
+        state_.body_vx    = dx2 / dt_s;
+        state_.body_vy    = dy2 / dt_s;
+        state_.omega_z    = 0.0f;
+        state_.raw_dtheta = 0.0f;
+
+    } else {
+        // ======================================================
+        // 双路均无效：输出全零
+        // ======================================================
+        state_.left_vx    = 0.0f;
+        state_.left_vy    = 0.0f;
+        state_.right_vx   = 0.0f;
+        state_.right_vy   = 0.0f;
+        state_.body_vx    = 0.0f;
+        state_.body_vy    = 0.0f;
+        state_.omega_z    = 0.0f;
+        state_.raw_dtheta = 0.0f;
+    }
+
+    // ----------------------------------------------------------
+    // 更新 last 值
+    // ----------------------------------------------------------
+    if (have_left) {
+        left_last_x_ = data.left_x;
+        left_last_y_ = data.left_y;
+    }
+    if (have_right) {
+        right_last_x_ = data.right_x;
+        right_last_y_ = data.right_y;
+    }
+    last_time_ms_ = data.tick_ms;
+
+    // ----------------------------------------------------------
+    // [COMMENTED OUT] 原单光流卡尔曼融合流程，完整保留供后续参考
+    // ----------------------------------------------------------
+    /*
     // 预测：用 IMU 加速度
     kf_pose.predict(imu_acc_x, imu_acc_y, dt_s);
     // 用滤波后的光流速度测量
     kf_pose.updateVel(filtered_vx, filtered_vy);
 
-    // 机器人坐标系下的位移增量（由卡尔曼位置状态差分得到）
     float de_est = kf_pose.px() - kf_last_px;
     float df_est = kf_pose.py() - kf_last_py;
     kf_last_px = kf_pose.px();
     kf_last_py = kf_pose.py();
-    
-    // Update global position
+
     state_.global_x = kf_pose.px();
     state_.global_y = kf_pose.py();
-    
+
     float yaw_now_rad = (imu_angle_z - (-108.67f)) / 180.0f * PI;
     float yaw_mid_rad = yaw_now_rad + 0.5f * state_.delta_yaw;
-    //state_.global_x += state_.e * cosf(yaw_mid_rad) + state_.f * sinf(yaw_mid_rad);
-    //state_.global_y += -state_.e * sinf(yaw_mid_rad) + state_.f * cosf(yaw_mid_rad);
     state_.global_x += de_est * cosf(yaw_mid_rad) + df_est * sinf(yaw_mid_rad);
     state_.global_y += -de_est * sinf(yaw_mid_rad) + df_est * cosf(yaw_mid_rad);
     state_.global_vx = kf_pose.vx();
     state_.global_vy = kf_pose.vy();
-
-    state_.last_x = state_.raw_x;
-    state_.last_y = state_.raw_y;
-    state_.last_time_ms = state_.time_ms;
-    state_.last_time_us = state_.time_us;
+    */
 }
