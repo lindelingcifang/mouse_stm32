@@ -10,7 +10,7 @@
 #include "can_callbacks.h"
 #include "z_main.h"
 // [NEW] 引入 Component 头文件
-#include "Component/opt_flow1.hpp"
+#include "Component/opt_flow.hpp"
 #include <cstring>
 
 // ============================================================
@@ -68,7 +68,7 @@ OptFlowSideState right_flow_state;
 // ============================================================
 // [NEW] Component 实例（对应单光流中的 opt_flow 全局对象）
 // ============================================================
-static OptFlow opt_flow;
+// OptFlow opt_flow; // Already defined in main.cpp
 
 // ============================================================
 // [UNCHANGED] 对外暴露的全局变量（供其他模块读取）

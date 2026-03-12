@@ -1,10 +1,10 @@
 // ============================================================
-// [MODIFIED] opt_flow1.cpp
+// [MODIFIED] opt_flow.cpp
 //   原: 单光流 + IMU 卡尔曼融合
 //   现: 双光流速度估计（无 IMU），卡尔曼相关代码保留但注释掉
 // ============================================================
 
-#include "opt_flow1.hpp"
+#include "opt_flow.hpp"
 #include <cmath>
 #include <cstring>
 #include "stm32f4xx_hal.h"
