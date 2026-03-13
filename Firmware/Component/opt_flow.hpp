@@ -13,15 +13,6 @@
 // ============================================================
 #define OPTFLOW_HALF_BASELINE_MM (16.3f)
 
-// Constant Velocity 1D Kalman filter tuning knobs
-#define OPTFLOW_KF_Q_POS (0.5f)
-#define OPTFLOW_KF_Q_VEL (50.0f)
-#define OPTFLOW_KF_R_MEAS (25.0f)
-#define OPTFLOW_KF_R_ZERO_MEAS (2500.0f)
-#define OPTFLOW_KF_ZERO_MEAS_EPS (1e-3f)
-#define OPTFLOW_KF_HIGH_PRED_VEL_MMPS (80.0f)
-#define OPTFLOW_KF_HIGH_PRED_OMEGA_RADPS (1.5f)
-
 // [UNCHANGED] valid_mask 位定义
 #define OPTFLOW_MASK_LEFT  (0x01u)
 #define OPTFLOW_MASK_RIGHT (0x02u)
@@ -118,25 +109,6 @@ public:
     void reset();
 
 private:
-    struct CvKalman1D {
-        float x_pos;
-        float x_vel;
-        float p00;
-        float p01;
-        float p10;
-        float p11;
-        bool initialized;
-
-        CvKalman1D();
-        void reset();
-        void init(float pos0, float vel0 = 0.0f, float p0 = 1.0f);
-        void predict(float dt_s, float q_pos, float q_vel);
-        float update(float measurement, float r_meas, float r_zero_meas,
-                     float zero_meas_eps, float high_pred_vel_thresh);
-        float pos() const { return x_pos; }
-        float vel() const { return x_vel; }
-    };
-
     // ============================================================
     // [MODIFIED] 常量
     //   原: OFFSET_X/Y（单光流安装偏移，用于刚体修正）
@@ -163,10 +135,6 @@ private:
     float        right_last_x_;
     float        right_last_y_;
     unsigned int last_time_ms_;
-
-    CvKalman1D   kf_dx_;
-    CvKalman1D   kf_dy_;
-    CvKalman1D   kf_theta_;
 };
 
 // ============================================================
