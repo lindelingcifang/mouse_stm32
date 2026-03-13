@@ -9,6 +9,108 @@
 #include <cstring>
 #include "stm32f4xx_hal.h"
 
+namespace {
+
+constexpr float kMaxLinearSpeedMmPerS = 3500.0f;
+constexpr float kMaxAngularSpeedRadPerS = 50.0f;
+
+float hold_previous(float value, float previous_value, float limit) {
+    return (fabsf(value) > limit) ? previous_value : value;
+}
+
+void apply_velocity_filter(OptFlow::State_t& state, const OptFlow::State_t& previous_state) {
+    state.left_vx = hold_previous(state.left_vx, previous_state.left_vx, kMaxLinearSpeedMmPerS);
+    state.left_vy = hold_previous(state.left_vy, previous_state.left_vy, kMaxLinearSpeedMmPerS);
+    state.right_vx = hold_previous(state.right_vx, previous_state.right_vx, kMaxLinearSpeedMmPerS);
+    state.right_vy = hold_previous(state.right_vy, previous_state.right_vy, kMaxLinearSpeedMmPerS);
+    state.body_vx = hold_previous(state.body_vx, previous_state.body_vx, kMaxLinearSpeedMmPerS);
+    state.body_vy = hold_previous(state.body_vy, previous_state.body_vy, kMaxLinearSpeedMmPerS);
+    state.omega_z = hold_previous(state.omega_z, previous_state.omega_z, kMaxAngularSpeedRadPerS);
+
+    if (state.omega_z == previous_state.omega_z && fabsf(previous_state.omega_z) <= kMaxAngularSpeedRadPerS) {
+        state.raw_dtheta = previous_state.raw_dtheta;
+    }
+}
+
+}
+
+OptFlow::CvKalman1D::CvKalman1D() {
+    reset();
+}
+
+void OptFlow::CvKalman1D::reset() {
+    x_pos = 0.0f;
+    x_vel = 0.0f;
+    p00 = 1.0f;
+    p01 = 0.0f;
+    p10 = 0.0f;
+    p11 = 1.0f;
+    initialized = false;
+}
+
+void OptFlow::CvKalman1D::init(float pos0, float vel0, float p0) {
+    x_pos = pos0;
+    x_vel = vel0;
+    p00 = p0;
+    p01 = 0.0f;
+    p10 = 0.0f;
+    p11 = p0;
+    initialized = true;
+}
+
+void OptFlow::CvKalman1D::predict(float dt_s, float q_pos, float q_vel) {
+    if (!initialized || dt_s <= 0.0f) return;
+
+    x_pos += dt_s * x_vel;
+
+    const float p00_old = p00;
+    const float p01_old = p01;
+    const float p10_old = p10;
+    const float p11_old = p11;
+
+    p00 = p00_old + dt_s * (p10_old + p01_old) + dt_s * dt_s * p11_old + q_pos;
+    p01 = p01_old + dt_s * p11_old;
+    p10 = p10_old + dt_s * p11_old;
+    p11 = p11_old + q_vel;
+}
+
+float OptFlow::CvKalman1D::update(float measurement, float r_meas, float r_zero_meas,
+                                  float zero_meas_eps, float high_pred_vel_thresh) {
+    if (!initialized) {
+        init(measurement, 0.0f, 1.0f);
+        return x_pos;
+    }
+
+    float r_used = r_meas;
+    if (fabsf(measurement) <= zero_meas_eps && fabsf(x_vel) >= high_pred_vel_thresh) {
+        r_used = r_zero_meas;
+    }
+
+    const float innovation = measurement - x_pos;
+    const float s = p00 + r_used;
+    if (s <= 0.0f) {
+        return x_pos;
+    }
+
+    const float k0 = p00 / s;
+    const float k1 = p10 / s;
+
+    x_pos += k0 * innovation;
+    x_vel += k1 * innovation;
+
+    const float p00_old = p00;
+    const float p01_old = p01;
+    const float p10_old = p10;
+    const float p11_old = p11;
+
+    p00 = (1.0f - k0) * p00_old;
+    p01 = (1.0f - k0) * p01_old;
+    p10 = p10_old - k1 * p00_old;
+    p11 = p11_old - k1 * p01_old;
+
+    return x_pos;
+}
+
 // ============================================================
 // [COMMENTED OUT] 原单光流兼容接口（带 IMU 参数的重载）
 //   待引入 IMU 后可恢复
@@ -278,6 +380,9 @@ void OptFlow::reset() {
     right_last_x_ = 0.0f;
     right_last_y_ = 0.0f;
     last_time_ms_ = 0;
+    kf_dx_.reset();
+    kf_dy_.reset();
+    kf_theta_.reset();
     // [COMMENTED OUT] 卡尔曼 / 中值滤波重置
     // kf_pose_inited = false;
     // mf_vx.reset();
@@ -299,6 +404,7 @@ void OptFlow::reset() {
 //     vx = dx_robot / dt,  vy = dy_robot / dt,  omega = dtheta / dt
 // ============================================================
 void OptFlow::process(const Data_t& data) {
+    const State_t previous_state = state_;
 
     state_.time_ms = data.tick_ms;
 
@@ -387,13 +493,25 @@ void OptFlow::process(const Data_t& data) {
         float sin_arg = (dx2 - dx1) / (2.0f * HALF_BASELINE);
         if (sin_arg >  1.0f) sin_arg =  1.0f;
         if (sin_arg < -1.0f) sin_arg = -1.0f;
-        float dtheta = asinf(sin_arg);
-        state_.raw_dtheta = dtheta;
+        float theta = asinf(sin_arg);
 
-        // 机器人本体速度
-        state_.body_vx = dx_robot / dt_s;
-        state_.body_vy = dy_robot / dt_s;
-        state_.omega_z = dtheta   / dt_s;
+        kf_dx_.predict(dt_s, OPTFLOW_KF_Q_POS, OPTFLOW_KF_Q_VEL);
+        kf_dy_.predict(dt_s, OPTFLOW_KF_Q_POS, OPTFLOW_KF_Q_VEL);
+        kf_theta_.predict(dt_s, OPTFLOW_KF_Q_POS, OPTFLOW_KF_Q_VEL);
+
+        float dx_robot_hat = kf_dx_.update(dx_robot, OPTFLOW_KF_R_MEAS, OPTFLOW_KF_R_ZERO_MEAS,
+                           OPTFLOW_KF_ZERO_MEAS_EPS, OPTFLOW_KF_HIGH_PRED_VEL_MMPS);
+        float dy_robot_hat = kf_dy_.update(dy_robot, OPTFLOW_KF_R_MEAS, OPTFLOW_KF_R_ZERO_MEAS,
+                           OPTFLOW_KF_ZERO_MEAS_EPS, OPTFLOW_KF_HIGH_PRED_VEL_MMPS);
+        float theta_hat = kf_theta_.update(theta, OPTFLOW_KF_R_MEAS, OPTFLOW_KF_R_ZERO_MEAS,
+                           OPTFLOW_KF_ZERO_MEAS_EPS, OPTFLOW_KF_HIGH_PRED_OMEGA_RADPS);
+
+        state_.raw_dtheta = theta_hat;
+
+        // 机器人本体速度（由滤波后的位移/角位移换算）
+        state_.body_vx = dx_robot_hat / dt_s;
+        state_.body_vy = dy_robot_hat / dt_s;
+        state_.omega_z = theta_hat / dt_s;
 
     } else if (have_left) {
         // ======================================================
@@ -407,10 +525,25 @@ void OptFlow::process(const Data_t& data) {
         state_.right_vx = 0.0f;
         state_.right_vy = 0.0f;
 
-        state_.body_vx    = dx1 / dt_s;
-        state_.body_vy    = dy1 / dt_s;
-        state_.omega_z    = 0.0f;
-        state_.raw_dtheta = 0.0f;
+        float dx_robot = dx1;
+        float dy_robot = dy1;
+        float theta = 0.0f;
+
+        kf_dx_.predict(dt_s, OPTFLOW_KF_Q_POS, OPTFLOW_KF_Q_VEL);
+        kf_dy_.predict(dt_s, OPTFLOW_KF_Q_POS, OPTFLOW_KF_Q_VEL);
+        kf_theta_.predict(dt_s, OPTFLOW_KF_Q_POS, OPTFLOW_KF_Q_VEL);
+
+        float dx_robot_hat = kf_dx_.update(dx_robot, OPTFLOW_KF_R_MEAS, OPTFLOW_KF_R_ZERO_MEAS,
+                           OPTFLOW_KF_ZERO_MEAS_EPS, OPTFLOW_KF_HIGH_PRED_VEL_MMPS);
+        float dy_robot_hat = kf_dy_.update(dy_robot, OPTFLOW_KF_R_MEAS, OPTFLOW_KF_R_ZERO_MEAS,
+                           OPTFLOW_KF_ZERO_MEAS_EPS, OPTFLOW_KF_HIGH_PRED_VEL_MMPS);
+        float theta_hat = kf_theta_.update(theta, OPTFLOW_KF_R_MEAS, OPTFLOW_KF_R_ZERO_MEAS,
+                           OPTFLOW_KF_ZERO_MEAS_EPS, OPTFLOW_KF_HIGH_PRED_OMEGA_RADPS);
+
+        state_.body_vx    = dx_robot_hat / dt_s;
+        state_.body_vy    = dy_robot_hat / dt_s;
+        state_.omega_z    = theta_hat / dt_s;
+        state_.raw_dtheta = theta_hat;
 
     } else if (have_right) {
         // ======================================================
@@ -424,10 +557,25 @@ void OptFlow::process(const Data_t& data) {
         state_.right_vx = dx2 / dt_s;
         state_.right_vy = dy2 / dt_s;
 
-        state_.body_vx    = dx2 / dt_s;
-        state_.body_vy    = dy2 / dt_s;
-        state_.omega_z    = 0.0f;
-        state_.raw_dtheta = 0.0f;
+        float dx_robot = dx2;
+        float dy_robot = dy2;
+        float theta = 0.0f;
+
+        kf_dx_.predict(dt_s, OPTFLOW_KF_Q_POS, OPTFLOW_KF_Q_VEL);
+        kf_dy_.predict(dt_s, OPTFLOW_KF_Q_POS, OPTFLOW_KF_Q_VEL);
+        kf_theta_.predict(dt_s, OPTFLOW_KF_Q_POS, OPTFLOW_KF_Q_VEL);
+
+        float dx_robot_hat = kf_dx_.update(dx_robot, OPTFLOW_KF_R_MEAS, OPTFLOW_KF_R_ZERO_MEAS,
+                           OPTFLOW_KF_ZERO_MEAS_EPS, OPTFLOW_KF_HIGH_PRED_VEL_MMPS);
+        float dy_robot_hat = kf_dy_.update(dy_robot, OPTFLOW_KF_R_MEAS, OPTFLOW_KF_R_ZERO_MEAS,
+                           OPTFLOW_KF_ZERO_MEAS_EPS, OPTFLOW_KF_HIGH_PRED_VEL_MMPS);
+        float theta_hat = kf_theta_.update(theta, OPTFLOW_KF_R_MEAS, OPTFLOW_KF_R_ZERO_MEAS,
+                           OPTFLOW_KF_ZERO_MEAS_EPS, OPTFLOW_KF_HIGH_PRED_OMEGA_RADPS);
+
+        state_.body_vx    = dx_robot_hat / dt_s;
+        state_.body_vy    = dy_robot_hat / dt_s;
+        state_.omega_z    = theta_hat / dt_s;
+        state_.raw_dtheta = theta_hat;
 
     } else {
         // ======================================================
@@ -442,6 +590,8 @@ void OptFlow::process(const Data_t& data) {
         state_.omega_z    = 0.0f;
         state_.raw_dtheta = 0.0f;
     }
+
+    apply_velocity_filter(state_, previous_state);
 
     // ----------------------------------------------------------
     // 更新 last 值

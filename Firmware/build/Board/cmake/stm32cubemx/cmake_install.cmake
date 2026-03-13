@@ -1,4 +1,4 @@
-# Install script for directory: D:/Nlict/lichengji/double/mouse_stm32/Firmware/Board/cmake/stm32cubemx
+# Install script for directory: E:/zjunlict/mouse/stm32_dual_mouse/new_algorithm/mouse_stm32/Firmware/Board/cmake/stm32cubemx
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -32,14 +32,8 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
   set(CMAKE_CROSSCOMPILING "TRUE")
 endif()
 
-# Set path to fallback-tool for dependency-resolution.
+# Set default install directory permissions.
 if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "D:/stm32/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi/bin/arm-none-eabi-objdump.exe")
+  set(CMAKE_OBJDUMP "E:/Program Files/arm_gnu_toolchain/bin/arm-none-eabi-objdump.exe")
 endif()
 
-string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
-       "${CMAKE_INSTALL_MANIFEST_FILES}")
-if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "D:/Nlict/lichengji/double/mouse_stm32/Firmware/build/Board/cmake/stm32cubemx/install_local_manifest.txt"
-     "${CMAKE_INSTALL_MANIFEST_CONTENT}")
-endif()
