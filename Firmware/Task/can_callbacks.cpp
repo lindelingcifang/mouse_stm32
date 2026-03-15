@@ -33,12 +33,12 @@ void on_optflow_rx(void* ctx, const can_Message_t& msg) {
 
     DualOptFlowSnapshot_t snapshot = g_optflow_snapshot;
     if (msg.id == kOptFlowCanIdLeft) {
-        snapshot.left_x = x;
-        snapshot.left_y = y;
+        snapshot.left_x = -y;
+        snapshot.left_y = -x;
         snapshot.valid_mask |= 0x01;
     } else {
-        snapshot.right_x = x;
-        snapshot.right_y = y;
+        snapshot.right_x = -y;
+        snapshot.right_y = -x;
         snapshot.valid_mask |= 0x02;
     }
     snapshot.tick_ms = HAL_GetTick();
