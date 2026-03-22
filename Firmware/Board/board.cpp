@@ -34,6 +34,7 @@ bool board_init() {
     MX_I2C1_Init();
     MX_I2C2_Init();
     MX_SPI1_Init();
+    MX_SPI2_Init();  // Initialize SPI2 for BMI088
     MX_UART5_Init();
     MX_USART1_UART_Init();
     MX_USART2_UART_Init();
@@ -75,7 +76,8 @@ bool board_init() {
     //     can2_bus.subscribe(motor_filter, on_motor_fb_rx, nullptr, nullptr);
     // }
 
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart4, robot.imu_rx_data, IMU_RX_DATA_LENGTH);
+    // NOTE: IMU data now comes from BMI088 via SPI2, not UART4
+    // HAL_UARTEx_ReceiveToIdle_DMA(&huart4, robot.imu_rx_data, IMU_RX_DATA_LENGTH);
 
     // Start TIM2 for 1kHz control loop
     HAL_TIM_Base_Start_IT(&htim2);

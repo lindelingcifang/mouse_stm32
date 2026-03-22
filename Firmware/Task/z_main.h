@@ -48,6 +48,18 @@ extern ZCAN can2_bus;
 extern IMU imu;
 extern OptFlow opt_flow;
 
+extern volatile float imu_dbg_acc_x;
+extern volatile float imu_dbg_acc_y;
+extern volatile float imu_dbg_acc_z;
+extern volatile float imu_dbg_gyro_x;
+extern volatile float imu_dbg_gyro_y;
+extern volatile float imu_dbg_gyro_z;
+extern volatile float imu_dbg_angle_x;
+extern volatile float imu_dbg_angle_y;
+extern volatile float imu_dbg_angle_z;
+extern volatile uint32_t imu_dbg_update_tick_ms;
+extern volatile uint32_t imu_dbg_update_count;
+
 
 #endif // __cplusplus
 

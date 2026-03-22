@@ -7,6 +7,13 @@
 #define IMU_RX_DATA_LENGTH (11*3*2)
 #define IMU_TX_DATA_LENGTH (5)
 
+// BMI088 raw data structure
+struct bmi088_raw_data_t {
+    int16_t x;
+    int16_t y;
+    int16_t z;
+};
+
 class IMU {
 public:
     enum DataType {
@@ -39,6 +46,8 @@ public:
     ~IMU() = default;
 
     void decode(uint8_t raw_data[IMU_RX_DATA_LENGTH]);
+    // BMI088 data decoding from raw sensor values
+    void decode_bmi088(const bmi088_raw_data_t *acc, const bmi088_raw_data_t *gyro);
     float get_data(const DataType type) const { return data_[type]; }
     void get_data(float out_data[9]) const;
     // void update(uint8_t imu_tx_date[5]);

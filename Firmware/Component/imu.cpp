@@ -51,3 +51,32 @@ void IMU::get_data(float out_data[9]) const
     out_data[7] = data_[kAngleY];
     out_data[8] = data_[kAngleZ];
 }
+
+// BMI088 conversion factors
+// Accel: ±24g range, LSB sensitivity = 1/1365 g/LSB, convert to m/s²
+// Gyro: ±2000 DPS range, LSB sensitivity = 1/16.384 DPS/LSB
+void IMU::decode_bmi088(const bmi088_raw_data_t *acc, const bmi088_raw_data_t *gyro)
+{
+    if (acc == nullptr || gyro == nullptr) return;
+    
+    // BMI088 accel: ±24g, 14-bit data (actually 14-bit but stored in 16-bit)
+    // Sensitivity: 1/1365 g/LSB at ±24g range
+    // Convert to m/s²: LSB * (24 * 9.8 / 32768)
+    data_[kAccX] = acc->x * (24.0f * 9.8f / 32768.0f);
+    data_[kAccY] = acc->y * (24.0f * 9.8f / 32768.0f);
+    data_[kAccZ] = acc->z * (24.0f * 9.8f / 32768.0f);
+    
+    // BMI088 gyro: ±2000 DPS
+    // Sensitivity: 1/16.384 DPS/LSB at ±2000 DPS range
+    // Keep as DPS: LSB * (2000 / 32768)
+    data_[kOmegaX] = gyro->x * (2000.0f / 32768.0f);
+    data_[kOmegaY] = gyro->y * (2000.0f / 32768.0f);
+    data_[kOmegaZ] = gyro->z * (2000.0f / 32768.0f);
+    
+    // Note: BMI088 does not provide Euler angles directly
+    // Angles are typically computed by firmware/external algorithm
+    // For now, keep them as zeros or indicate they need external computation
+    data_[kAngleX] = 0.0f;
+    data_[kAngleY] = 0.0f;
+    data_[kAngleZ] = 0.0f;
+}
