@@ -19,6 +19,7 @@
 #define BMI088_ACC_PWR_CONF_REG  0x7CU
 #define BMI088_ACC_PWR_CTRL_REG  0x7DU
 #define BMI088_ACC_CONF_REG      0x40U
+#define BMI088_ACC_RANGE_REG     0x41U
 #define BMI088_ACC_X_LSB_REG     0x12U
 #define BMI088_ACC_SENSORTIME0_REG 0x18U
 
@@ -32,6 +33,7 @@
 
 #define BMI088_ACC_BW_NORMAL_BITS    0xA0U
 #define BMI088_ACC_ODR_1600_BITS     0x0CU
+#define BMI088_ACC_RANGE_24G_BITS    0x03U
 #define BMI088_GYRO_ODR_2000_BITS    0x01U
 #define BMI088_GYRO_RANGE_2000DPS    0x00U
 
@@ -181,6 +183,12 @@ uint8_t bmi088_init_minimal(void)
     HAL_Delay(5);
 
     /* High-rate configuration: Accel 1600Hz, Gyro 2000Hz. */
+    if (bmi088_write_reg_acc(BMI088_ACC_RANGE_REG, BMI088_ACC_RANGE_24G_BITS) == 0U)
+    {
+        return 0U;
+    }
+    HAL_Delay(1);
+
     if (bmi088_write_reg_acc(BMI088_ACC_CONF_REG, (uint8_t)(BMI088_ACC_BW_NORMAL_BITS | BMI088_ACC_ODR_1600_BITS)) == 0U)
     {
         return 0U;

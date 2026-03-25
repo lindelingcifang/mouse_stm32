@@ -39,7 +39,11 @@ void StartImuRxTask(void *argument) {
     HAL_Delay(50);
     
     // Read BMI088 chip IDs
-    bmi088_probe_ids(&bmi088_acc_id, &bmi088_gyro_id);
+    uint8_t acc_id = 0xFF;
+    uint8_t gyro_id = 0xFF;
+    bmi088_probe_ids(&acc_id, &gyro_id);
+    bmi088_acc_id = acc_id;
+    bmi088_gyro_id = gyro_id;
     
     // Initialize BMI088
     bmi088_init_ok = bmi088_init_minimal();
@@ -69,10 +73,12 @@ void StartImuRxTask(void *argument) {
                 imu_dbg_angle_z = imu_frame[8];
                 imu_dbg_update_tick_ms = HAL_GetTick();
                 imu_dbg_update_count++;
+
+                osSemaphoreRelease(sem_imu_readyHandle);//修改到if里面
             }
             
             // Signal IMU data ready
-            osSemaphoreRelease(sem_imu_readyHandle);
+            
             
             osMutexRelease(mtx_robot_stateHandle);
         }

@@ -72,14 +72,14 @@ float Kalman1D::update(float z) {
 // ============================================================
 // [COMMENTED OUT] Kalman2DPosVel 实现 —— 暂不启用，原代码完整保留
 // ============================================================
-/*
+
 Kalman2DPosVel::Kalman2DPosVel() {
-    setNoise(0.01f, 1.0f, 100.0f, 1e6f);
-    init(0.0f, 0.0f, 0.0f, 0.0f, 100.0f);
+    setNoise(0.1f, 5.0f, 300.0f, 1e6f);
+    init(0.0f, 0.0f, 0.0f, 0.0f, 500.0f);
 }
 
 void Kalman2DPosVel::setNoise(float q_pos, float q_vel, float r_vel, float r_pos) {
-    Qd_[0] = q_pos; Qd_[1] = q_pos; Qd_[2] = q_vel; Qd_[3] = q_vel;
+    Q_[0] = q_pos; Q_[1] = q_pos; Q_[2] = q_vel; Q_[3] = q_vel;
     Rv_[0] = r_vel; Rv_[1] = r_vel;
     Rp_[0] = r_pos; Rp_[1] = r_pos;
 }
@@ -132,10 +132,10 @@ void Kalman2DPosVel::predict(float ax, float ay, float dt) {
     Pn[7]  = AP[5] * dt + AP[7];
     Pn[11] = AP[9] * dt + AP[11];
     Pn[15] = AP[13] * dt + AP[15];
-    Pn[0]  += Qd_[0];
-    Pn[5]  += Qd_[1];
-    Pn[10] += Qd_[2];
-    Pn[15] += Qd_[3];
+    Pn[0]  += Q_[0];
+    Pn[5]  += Q_[1];
+    Pn[10] += Q_[2];
+    Pn[15] += Q_[3];
     for (int i = 0; i < 16; ++i) P_[i] = Pn[i];
 }
 
@@ -232,7 +232,7 @@ void Kalman2DPosVel::updatePos(float px_meas, float py_meas) {
     Pn[13] = P_[13] - (K6 * P_[1] + K7 * P_[5]);
     for (int i = 0; i < 16; ++i) P_[i] = Pn[i];
 }
-*/
+
 
 
 // ============================================================
@@ -283,7 +283,12 @@ static float last_imu_angle_z = 0.0f;
 OptFlow::OptFlow() : left_initialized_(false), right_initialized_(false),
                      left_last_x_(0.0f), left_last_y_(0.0f),
                      right_last_x_(0.0f), right_last_y_(0.0f),
-                     last_time_ms_(0) {
+                     last_time_ms_(0),
+                     kf_inited_(false),           // 新增
+                     kf_last_px_(0.0f),           // 新增
+                     kf_last_py_(0.0f),           // 新增
+                     cf_omega_z_(0.0f)            // 新增
+                     {
     memset(&state_, 0, sizeof(state_));
 }
 
@@ -303,11 +308,12 @@ void OptFlow::reset() {
     right_last_x_ = 0.0f;
     right_last_y_ = 0.0f;
     last_time_ms_ = 0;
-    // [COMMENTED OUT] 卡尔曼 / 中值滤波重置
-    // kf_pose_inited = false;
-    // mf_vx.reset();
-    // mf_vy.reset();
-    // last_imu_angle_z = 0.0f;
+    // 新增
+    kf_inited_   = false;
+    kf_last_px_  = 0.0f;
+    kf_last_py_  = 0.0f;
+    cf_omega_z_  = 0.0f;
+    kf_.init(0.0f, 0.0f, 0.0f, 0.0f, 1000.0f);
 }
 
 // ============================================================
@@ -471,6 +477,50 @@ void OptFlow::process(const Data_t& data) {
 
     apply_velocity_filter(state_, previous_state);
 
+
+
+    if (data.imu_valid) {
+
+    // --- 1. IMU 加速度预测 ---
+    // IMU 输出单位：m/s²，卡尔曼状态单位：mm/s 和 mm
+    // 需要把加速度转换为 mm/s²
+    float ax_mm = data.imu_acc_x * 1000.0f;
+    float ay_mm = data.imu_acc_y * 1000.0f;
+
+    if (!kf_inited_) {
+        // 首帧：用光流速度初始化卡尔曼
+        kf_.init(0.0f, 0.0f, state_.body_vx, state_.body_vy, 1000.0f);
+        kf_last_px_ = 0.0f;
+        kf_last_py_ = 0.0f;
+        kf_inited_  = true;
+    } else {
+        kf_.predict(ax_mm, ay_mm, dt_s);
+    }
+
+    // --- 2. 光流速度更新（仅在光流有效时）---
+    if (data.valid_mask != 0u) {
+        kf_.updateVel(state_.body_vx, state_.body_vy);
+    }
+
+    // --- 3. 输出融合结果 ---
+    state_.kf_vx = kf_.vx();
+    state_.kf_vy = kf_.vy();
+    state_.kf_px = kf_.px();
+    state_.kf_py = kf_.py();
+
+    // --- 4. 互补滤波：omega_z ---
+    // 光流 omega_z (rad/s) + IMU gyro_z (rad/s)
+    // kCfAlpha 控制光流权重，(1-alpha) 为 IMU 权重
+    cf_omega_z_ = kCfAlpha * state_.omega_z
+                + (1.0f - kCfAlpha) * data.imu_omega_z;
+    state_.kf_omega_z = cf_omega_z_;
+
+    } else {
+    // IMU 无效：融合输出退化为纯光流结果
+    state_.kf_vx      = state_.body_vx;
+    state_.kf_vy      = state_.body_vy;
+    state_.kf_omega_z = state_.omega_z;
+    }
     // ----------------------------------------------------------
     // 更新 last 值
     // ----------------------------------------------------------

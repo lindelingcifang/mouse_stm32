@@ -13,6 +13,7 @@
 #include "Component/opt_flow.hpp"
 #include <cstring>
 
+extern volatile uint8_t bmi088_init_ok;  // 声明 imu_task.cpp 中定义的变量
 // ============================================================
 // [COMMENTED OUT] 原 Task 层内嵌的速度计算辅助结构和函数
 //   逻辑已整体移入 OptFlow::process()，此处完整保留供参考
@@ -127,6 +128,18 @@ void StartOptFlowRxTask(void *argument) {
             data.tick_ms    = snapshot.tick_ms;
             data.valid_mask = snapshot.valid_mask;
 
+            // 新增：填充 IMU 字段
+            // 注意：imu 对象由 imu_task 持续更新，这里直接读取最新值
+            // opt_flow 任务不需要等信号量，直接拿当前帧 IMU 数据与当前帧光流融合
+            float imu_frame[9];
+            imu.get_data(imu_frame);
+            // imu_frame[0/1] = acc_x/y (m/s²)
+            // imu_frame[5]   = gyro_z  (DPS) → 转为 rad/s
+            data.imu_acc_x   = imu_frame[0];
+            data.imu_acc_y   = imu_frame[1];
+            data.imu_omega_z = imu_frame[5] * (3.14159f / 180.0f);
+            data.imu_valid   = (bmi088_init_ok != 0);  // bmi088_init_ok 在 imu_task 中声明
+
             opt_flow.process(data);
 
             // --------------------------------------------------
@@ -140,11 +153,11 @@ void StartOptFlowRxTask(void *argument) {
             dual_flow_right_vy = s.right_vy;
 
             // body_vx/vy/omega_z：机器人本体速度，与单光流变量命名保持一致
-            body_vx = s.body_vx;
-            body_vy = s.body_vy;
-            omega_z = s.omega_z;
+            body_vx = s.kf_vx;
+            body_vy = s.kf_vy;
+            omega_z = s.kf_omega_z;
 
-            // raw_vx/vy：保留兼容性，等同于 body_vx/vy
+            // raw 保留原始光流，方便调试对比
             raw_vx = s.body_vx;
             raw_vy = s.body_vy;
 

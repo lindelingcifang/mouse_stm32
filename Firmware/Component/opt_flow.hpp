@@ -17,6 +17,27 @@
 #define OPTFLOW_MASK_LEFT  (0x01u)
 #define OPTFLOW_MASK_RIGHT (0x02u)
 
+class Kalman2DPosVel {
+public:
+    Kalman2DPosVel();
+    void setNoise(float q_pos, float q_vel, float r_vel, float r_pos);
+    void init(float px0, float py0, float vx0, float vy0, float p0);
+    void predict(float ax, float ay, float dt);   // IMU 加速度预测
+    void updateVel(float vx_meas, float vy_meas); // 光流速度更新
+    void updatePos(float px_meas, float py_meas); // 光流位置更新（可选）
+    float px() const { return x_[0]; }
+    float py() const { return x_[1]; }
+    float vx() const { return x_[2]; }
+    float vy() const { return x_[3]; }
+private:
+    float Q_[4];   // 过程噪声对角线
+    float Rv_[2];  // 速度观测噪声
+    float Rp_[2];  // 位置观测噪声
+    float x_[4];   // 状态 [px, py, vx, vy]（单位：mm 和 mm/s）
+    float P_[16];  // 协方差矩阵（行主序）
+    // 注意：原代码用 Qd_ 命名，统一改为 Q_ 避免混淆
+};
+
 class OptFlow {
 public:
     // ============================================================
@@ -31,6 +52,11 @@ public:
         float        right_y;
         unsigned int tick_ms;
         unsigned int valid_mask;
+        // --- 新增 IMU 字段 ---
+        float imu_acc_x;   // 本体坐标系加速度 X，m/s²（BMI088 输出）
+        float imu_acc_y;   // 本体坐标系加速度 Y，m/s²
+        float imu_omega_z; // 陀螺仪 Z 轴角速度，rad/s（DPS 转换后）
+        bool  imu_valid;   // IMU 数据是否有效
     };
 
     // ============================================================
@@ -63,6 +89,13 @@ public:
         unsigned int time_ms;
         unsigned int last_time_ms;
         float        dt_s;
+
+        // --- 新增：卡尔曼融合输出 ---
+        float kf_vx;              // 融合后本体速度 X，mm/s
+        float kf_vy;              // 融合后本体速度 Y，mm/s
+        float kf_px;              // 融合后位置 X，mm（可用于里程计）
+        float kf_py;              // 融合后位置 Y，mm
+        float kf_omega_z;         // 融合后偏航角速度 rad/s（互补滤波）
 
         /* -------------------------------------------------------
          * [COMMENTED OUT] 单光流时代的状态字段，暂时不用
@@ -135,6 +168,16 @@ private:
     float        right_last_x_;
     float        right_last_y_;
     unsigned int last_time_ms_;
+
+     // --- 新增卡尔曼私有成员 ---
+    Kalman2DPosVel kf_;
+    bool kf_inited_;
+    float kf_last_px_;
+    float kf_last_py_;
+
+    // --- 新增互补滤波私有成员（用于 omega_z）---
+    float cf_omega_z_;        // 互补滤波后的 omega_z
+    static constexpr float kCfAlpha = 0.7f; // 光流权重
 };
 
 // ============================================================
@@ -161,25 +204,7 @@ private:
 //   待引入 IMU 后取消注释
 // ============================================================
 /*
-class Kalman2DPosVel {
-public:
-    Kalman2DPosVel();
-    void setNoise(float q_pos, float q_vel, float r_vel, float r_pos = 1e6f);
-    void init(float px0, float py0, float vx0, float vy0, float p0 = 1.0f);
-    void predict(float ax, float ay, float dt);
-    void updateVel(float vx_meas, float vy_meas);
-    void updatePos(float px_meas, float py_meas);
-    float px() const { return x_[0]; }
-    float py() const { return x_[1]; }
-    float vx() const { return x_[2]; }
-    float vy() const { return x_[3]; }
-private:
-    float x_[4];
-    float P_[16];
-    float Qd_[4];
-    float Rv_[2];
-    float Rp_[2];
-};
+
 */
 
 #endif // __OPT_FLOW_HPP
