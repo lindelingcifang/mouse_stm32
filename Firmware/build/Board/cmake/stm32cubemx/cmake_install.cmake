@@ -1,4 +1,4 @@
-# Install script for directory: E:/zjunlict/mouse/stm32_dual_mouse/new_algorithm/mouse_stm32/Firmware/Board/cmake/stm32cubemx
+# Install script for directory: E:/zjunlict/mouse/stm32_dual_mouse/new_algorithm/Firmware/Board/cmake/stm32cubemx
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

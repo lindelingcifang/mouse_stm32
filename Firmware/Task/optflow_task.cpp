@@ -11,6 +11,7 @@
 #include "z_main.h"
 // [NEW] 引入 Component 头文件
 #include "Component/opt_flow.hpp"
+#include "Component/ekf_vw.h"
 #include <cstring>
 
 // ============================================================
@@ -86,6 +87,7 @@ float dual_flow_right_vx;
 float dual_flow_right_vy;
 float raw_vx, raw_vy;
 float body_vx, body_vy, omega_z;
+float ekf_vx, ekf_vy, ekf_w;
 unsigned int mouse_time_ms;
 unsigned int optflow_valid_mask;
 
@@ -127,6 +129,10 @@ void StartOptFlowRxTask(void *argument) {
             data.tick_ms    = snapshot.tick_ms;
             data.valid_mask = snapshot.valid_mask;
 
+            if (osMutexAcquire(mtx_robot_stateHandle, 10) != osOK) {
+                continue;
+            }
+
             opt_flow.process(data);
 
             // --------------------------------------------------
@@ -139,14 +145,27 @@ void StartOptFlowRxTask(void *argument) {
             dual_flow_right_vx = s.right_vx;
             dual_flow_right_vy = s.right_vy;
 
-            // body_vx/vy/omega_z：机器人本体速度，与单光流变量命名保持一致
+            // Keep odometry outputs unchanged.
             body_vx = s.body_vx;
             body_vy = s.body_vy;
             omega_z = s.omega_z;
 
-            // raw_vx/vy：保留兼容性，等同于 body_vx/vy
+            // raw_vx/vy: keep raw odometry for debug and tuning.
             raw_vx = s.body_vx;
             raw_vy = s.body_vy;
+
+            // Asynchronous low-rate correction using odometry measurement.
+            EKF_Update(raw_vx, raw_vy, omega_z);
+
+            // Export fused 3-axis motion estimate to dedicated globals.
+            {
+                EKF_t *ekf = EKF_GetHandle();
+                ekf_vx = ekf->x[0];
+                ekf_vy = ekf->x[1];
+                ekf_w = ekf->x[2];
+            }
+
+            osMutexRelease(mtx_robot_stateHandle);
 
             // --------------------------------------------------
             // [COMMENTED OUT] 原 Task 层速度计算逻辑，完整保留供参考

@@ -157,7 +157,8 @@ uint8_t bmi088_init_minimal(void)
     {
         return 0U;
     }
-    HAL_Delay(2);
+    /* Datasheet sequence requires a longer wait after accel soft reset. */
+    HAL_Delay(50);
     if (bmi088_write_reg_acc(BMI088_ACC_PWR_CONF_REG, 0x00U) == 0U)
     {
         return 0U;
@@ -167,7 +168,7 @@ uint8_t bmi088_init_minimal(void)
     {
         return 0U;
     }
-    HAL_Delay(5);
+    HAL_Delay(50);
 
     if (bmi088_write_reg_gyro(BMI088_GYRO_SOFTRESET_REG, BMI088_SOFTRESET_CMD) == 0U)
     {
@@ -178,7 +179,7 @@ uint8_t bmi088_init_minimal(void)
     {
         return 0U;
     }
-    HAL_Delay(5);
+    HAL_Delay(30);
 
     /* High-rate configuration: Accel 1600Hz, Gyro 2000Hz. */
     if (bmi088_write_reg_acc(BMI088_ACC_CONF_REG, (uint8_t)(BMI088_ACC_BW_NORMAL_BITS | BMI088_ACC_ODR_1600_BITS)) == 0U)

@@ -60,6 +60,19 @@ extern volatile float imu_dbg_angle_z;
 extern volatile uint32_t imu_dbg_update_tick_ms;
 extern volatile uint32_t imu_dbg_update_count;
 
+extern volatile uint8_t bmi088_acc_id;
+extern volatile uint8_t bmi088_gyro_id;
+extern volatile uint8_t bmi088_init_ok;
+
+extern volatile float ekf_dbg_v;
+extern volatile float ekf_dbg_w;
+extern volatile float ekf_dbg_abx;
+extern volatile float ekf_dbg_wbz;
+
+extern float ekf_vx;
+extern float ekf_vy;
+extern float ekf_w;
+
 
 #endif // __cplusplus
 

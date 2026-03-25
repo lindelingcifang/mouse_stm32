@@ -7,12 +7,7 @@
 #define IMU_RX_DATA_LENGTH (11*3*2)
 #define IMU_TX_DATA_LENGTH (5)
 
-// BMI088 raw data structure
-struct bmi088_raw_data_t {
-    int16_t x;
-    int16_t y;
-    int16_t z;
-};
+struct bmi088_raw_data_t;
 
 class IMU {
 public:

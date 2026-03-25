@@ -119,9 +119,6 @@ static const TD::Parameter_t WHEEL_TD_PARAMS[4] = {
      .cycle_low = -180.0f, .cycle_high = 180.0f}
 };
 
-// IMU data buffer for transmission
-static float imu_data_buffer[9] = {0};
-
 Robot::Robot() {
     // Initialize wheel motors
     for (int i = 0; i < 4; i++) {
@@ -162,7 +159,7 @@ void Robot::pi_decode_spi() {
 void Robot::pi_encode_spi() {
     SpiTx.infrare_flag = (infra_ADC1_val > 0.5f) ? 1 : 0;
     SpiTx.getBall = false;
-    SpiTx.imu_online = true;
+    SpiTx.imu_online = (bmi088_init_ok != 0U);
     SpiTx.battery_vol = static_cast<int16_t>(bat_ADC2_val * 5);
     SpiTx.cap_vol = static_cast<int16_t>(cap_ADC3_val * 100);
 
@@ -172,9 +169,20 @@ void Robot::pi_encode_spi() {
         SpiTx.wheel_ref[i] = static_cast<int16_t>(motor_vel[i] * 10);
     }
 
-    // Encode IMU data
+    // Encode latest IMU debug values published by IMU task.
+    const float imu_tx_frame[9] = {
+        imu_dbg_acc_x,
+        imu_dbg_acc_y,
+        imu_dbg_acc_z,
+        imu_dbg_gyro_x,
+        imu_dbg_gyro_y,
+        imu_dbg_gyro_z,
+        imu_dbg_angle_x,
+        imu_dbg_angle_y,
+        imu_dbg_angle_z,
+    };
     for (uint8_t i = 0; i < 9; i++) {
-        SpiTx.imu_data[i] = static_cast<int16_t>(imu_data_buffer[i] * 100);
+        SpiTx.imu_data[i] = static_cast<int16_t>(imu_tx_frame[i] * 100);
     }
 
     memcpy(spi_tx_data, &SpiTx, sizeof(SpiTx));

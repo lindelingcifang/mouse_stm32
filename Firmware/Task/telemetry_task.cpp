@@ -35,6 +35,7 @@ void StartTelemetryTask(void *argument) {
     
     char rtt_buf[256];
     uint32_t last_report_time = 0;
+    uint32_t last_imu_update_count = 0;
     
     for(;;) {
         uint32_t current_time = HAL_GetTick();
@@ -55,6 +56,9 @@ void StartTelemetryTask(void *argument) {
         
         // Report statistics every second
         if (current_time - last_report_time >= 1000) {
+            uint32_t imu_updates = imu_dbg_update_count;
+            ts.imu_count = imu_updates - last_imu_update_count;
+            last_imu_update_count = imu_updates;
             
             // Format telemetry data as CSV
             // Time, OptFlow_Hz, OptFlow_Delay, Motor_Hz, IMU_Hz, Ctrl_Hz

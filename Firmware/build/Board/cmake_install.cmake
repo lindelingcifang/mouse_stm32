@@ -1,4 +1,4 @@
-# Install script for directory: E:/zjunlict/mouse/stm32_dual_mouse/new_algorithm/mouse_stm32/Firmware/Board
+# Install script for directory: E:/zjunlict/mouse/stm32_dual_mouse/new_algorithm/Firmware/Board
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -39,6 +39,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("E:/zjunlict/mouse/stm32_dual_mouse/new_algorithm/mouse_stm32/Firmware/build/Board/cmake/stm32cubemx/cmake_install.cmake")
+  include("E:/zjunlict/mouse/stm32_dual_mouse/new_algorithm/Firmware/build/Board/cmake/stm32cubemx/cmake_install.cmake")
 endif()
 

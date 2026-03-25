@@ -1,4 +1,5 @@
 #include "z_main.h"
+#include "Component/ekf_vw.h"
 
 #if defined(STM32F405xx)
 // Place FreeRTOS heap in core coupled memory for better performance
@@ -23,6 +24,9 @@ extern "C" int main(void) {
         // Handle board initialization failure
         while (1) {}
     }
+
+    // Initialize EKF singleton before multitask scheduling starts.
+    EKF_Init();
     
     // Start FreeRTOS scheduler
     osKernelInitialize();  /* Call init function for freertos objects (in cmsis_os2.c) */
