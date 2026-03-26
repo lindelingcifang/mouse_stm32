@@ -14,6 +14,12 @@ namespace {
 constexpr float kMaxLinearSpeedMmPerS = 3500.0f;
 constexpr float kMaxAngularSpeedRadPerS = 50.0f;
 
+float clampf(float v, float lo, float hi) {
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+}
+
 float hold_previous(float value, float previous_value, float limit) {
     return (fabsf(value) > limit) ? previous_value : value;
 }
@@ -287,9 +293,11 @@ OptFlow::OptFlow() : left_initialized_(false), right_initialized_(false),
                      kf_inited_(false),           // 新增
                      kf_last_px_(0.0f),           // 新增
                      kf_last_py_(0.0f),           // 新增
+                     flow_zero_streak_(0),
                      cf_omega_z_(0.0f)            // 新增
                      {
     memset(&state_, 0, sizeof(state_));
+    kf_.setNoise(kQPos, kQVel, kRVelMin, kRPos);
 }
 
 // ============================================================
@@ -312,8 +320,10 @@ void OptFlow::reset() {
     kf_inited_   = false;
     kf_last_px_  = 0.0f;
     kf_last_py_  = 0.0f;
+    flow_zero_streak_ = 0;
     cf_omega_z_  = 0.0f;
     kf_.init(0.0f, 0.0f, 0.0f, 0.0f, 1000.0f);
+    kf_.setNoise(kQPos, kQVel, kRVelMin, kRPos);
 }
 
 // ============================================================
@@ -477,50 +487,93 @@ void OptFlow::process(const Data_t& data) {
 
     apply_velocity_filter(state_, previous_state);
 
+    const bool flow_available = (data.valid_mask != 0u);
+    const float ax_mm = data.imu_acc_x * 1000.0f;
+    const float ay_mm = data.imu_acc_y * 1000.0f;
 
-
-    if (data.imu_valid) {
-
-    // --- 1. IMU 加速度预测 ---
-    // IMU 输出单位：m/s²，卡尔曼状态单位：mm/s 和 mm
-    // 需要把加速度转换为 mm/s²
-    float ax_mm = data.imu_acc_x * 1000.0f;
-    float ay_mm = data.imu_acc_y * 1000.0f;
-
-    if (!kf_inited_) {
-        // 首帧：用光流速度初始化卡尔曼
+    // 如果卡尔曼未初始化且本帧有光流，先用光流速度初始化。
+    if (!kf_inited_ && flow_available) {
         kf_.init(0.0f, 0.0f, state_.body_vx, state_.body_vy, 1000.0f);
         kf_last_px_ = 0.0f;
         kf_last_py_ = 0.0f;
         kf_inited_  = true;
-    } else {
+    }
+
+    // 先做 IMU 预测，再基于预测残差评估光流质量。
+    if (kf_inited_ && data.imu_valid) {
         kf_.predict(ax_mm, ay_mm, dt_s);
     }
 
-    // --- 2. 光流速度更新（仅在光流有效时）---
-    if (data.valid_mask != 0u) {
+    // --- 光流质量评估：用于动态调节 updateVel 权重 ---
+    float availability_score = 0.0f;
+    if ((data.valid_mask & (OPTFLOW_MASK_LEFT | OPTFLOW_MASK_RIGHT)) == (OPTFLOW_MASK_LEFT | OPTFLOW_MASK_RIGHT)) {
+        availability_score = 1.0f;
+    } else if (flow_available) {
+        availability_score = 0.55f;
+    }
+
+    const float flow_speed_norm = sqrtf(state_.body_vx * state_.body_vx + state_.body_vy * state_.body_vy);
+    const float imu_acc_norm = sqrtf(ax_mm * ax_mm + ay_mm * ay_mm);
+    const bool suspicious_zero = flow_available && (flow_speed_norm < kZeroSpeedMmPerS)
+                                 && data.imu_valid && (imu_acc_norm > kAccelActiveMmPerS2);
+    if (suspicious_zero) {
+        if (flow_zero_streak_ < 255u) flow_zero_streak_++;
+    } else if (flow_zero_streak_ > 0u) {
+        flow_zero_streak_--;
+    }
+    const float zero_penalty = clampf(static_cast<float>(flow_zero_streak_) / static_cast<float>(kZeroStreakBad), 0.0f, 1.0f);
+
+    float residual_score = 1.0f;
+    if (kf_inited_ && flow_available) {
+        const float rvx = state_.body_vx - kf_.vx();
+        const float rvy = state_.body_vy - kf_.vy();
+        const float residual = sqrtf(rvx * rvx + rvy * rvy);
+        residual_score = 1.0f - clampf(residual / kResidualBadMmPerS, 0.0f, 1.0f);
+    }
+
+    float flow_quality = availability_score * (1.0f - zero_penalty) * residual_score;
+    flow_quality = clampf(flow_quality, 0.0f, 1.0f);
+
+    // 自适应测量噪声：质量越差，R 越大，Kalman 越不信任光流。
+    const float inv_q = 1.0f - flow_quality;
+    const float r_vel_eff = kRVelMin + (inv_q * inv_q) * (kRVelMax - kRVelMin);
+    kf_.setNoise(kQPos, kQVel, r_vel_eff, kRPos);
+
+    const bool allow_flow_update = flow_available && (flow_quality >= kMinUpdateQuality);
+    if (kf_inited_ && allow_flow_update) {
         kf_.updateVel(state_.body_vx, state_.body_vy);
     }
 
-    // --- 3. 输出融合结果 ---
-    state_.kf_vx = kf_.vx();
-    state_.kf_vy = kf_.vy();
-    state_.kf_px = kf_.px();
-    state_.kf_py = kf_.py();
-
-    // --- 4. 互补滤波：omega_z ---
-    // 光流 omega_z (rad/s) + IMU gyro_z (rad/s)
-    // kCfAlpha 控制光流权重，(1-alpha) 为 IMU 权重
-    cf_omega_z_ = kCfAlpha * state_.omega_z
-                + (1.0f - kCfAlpha) * data.imu_omega_z;
-    state_.kf_omega_z = cf_omega_z_;
-
+    if (kf_inited_) {
+        state_.kf_vx = kf_.vx();
+        state_.kf_vy = kf_.vy();
+        state_.kf_px = kf_.px();
+        state_.kf_py = kf_.py();
     } else {
-    // IMU 无效：融合输出退化为纯光流结果
-    state_.kf_vx      = state_.body_vx;
-    state_.kf_vy      = state_.body_vy;
-    state_.kf_omega_z = state_.omega_z;
+        state_.kf_vx = state_.body_vx;
+        state_.kf_vy = state_.body_vy;
+        state_.kf_px = 0.0f;
+        state_.kf_py = 0.0f;
     }
+
+    // 互补滤波权重也按质量自适应：光流质量差时自动偏向 IMU 角速度。
+    float flow_weight = flow_quality;
+    if (!flow_available) {
+        flow_weight = 0.0f;
+    }
+    if (!data.imu_valid) {
+        flow_weight = flow_available ? 1.0f : 0.0f;
+    }
+    if (data.imu_valid) {
+        const float alpha = clampf(kCfAlpha * flow_weight, 0.0f, 1.0f);
+        cf_omega_z_ = alpha * state_.omega_z + (1.0f - alpha) * data.imu_omega_z;
+        state_.kf_omega_z = cf_omega_z_;
+    } else {
+        state_.kf_omega_z = state_.omega_z;
+    }
+
+    state_.flow_quality = flow_quality;
+    state_.flow_weight = flow_weight;
     // ----------------------------------------------------------
     // 更新 last 值
     // ----------------------------------------------------------

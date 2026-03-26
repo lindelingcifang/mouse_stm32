@@ -1,9 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"D:/Nlict/lichengji/double/mouse_stm32/Firmware/build/cmake_install.cmake",
-		"D:/Nlict/lichengji/double/mouse_stm32/Firmware/build/Board/cmake_install.cmake",
-		"D:/Nlict/lichengji/double/mouse_stm32/Firmware/build/Board/cmake/stm32cubemx/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

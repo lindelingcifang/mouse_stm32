@@ -96,6 +96,8 @@ public:
         float kf_px;              // 融合后位置 X，mm（可用于里程计）
         float kf_py;              // 融合后位置 Y，mm
         float kf_omega_z;         // 融合后偏航角速度 rad/s（互补滤波）
+        float flow_quality;       // 光流质量评分 [0,1]，用于调试动态权重
+        float flow_weight;        // 实际光流权重 [0,1]（越小越依赖 IMU）
 
         /* -------------------------------------------------------
          * [COMMENTED OUT] 单光流时代的状态字段，暂时不用
@@ -150,6 +152,16 @@ private:
     static constexpr float HALF_BASELINE = OPTFLOW_HALF_BASELINE_MM;
     static constexpr float MIN_DT = 0.001f;   // [UNCHANGED]
     static constexpr float MAX_DT = 0.1f;     // [UNCHANGED]
+    static constexpr float kQPos = 0.1f;
+    static constexpr float kQVel = 5.0f;
+    static constexpr float kRVelMin = 300.0f;
+    static constexpr float kRVelMax = 12000.0f;
+    static constexpr float kRPos = 1e6f;
+    static constexpr float kMinUpdateQuality = 0.08f;
+    static constexpr float kResidualBadMmPerS = 1800.0f;
+    static constexpr float kZeroSpeedMmPerS = 25.0f;
+    static constexpr float kAccelActiveMmPerS2 = 400.0f;
+    static constexpr uint8_t kZeroStreakBad = 6u;
 
     State_t      state_;
 
@@ -174,6 +186,7 @@ private:
     bool kf_inited_;
     float kf_last_px_;
     float kf_last_py_;
+    uint8_t flow_zero_streak_;
 
     // --- 新增互补滤波私有成员（用于 omega_z）---
     float cf_omega_z_;        // 互补滤波后的 omega_z
