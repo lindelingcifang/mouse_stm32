@@ -33,15 +33,17 @@ void on_optflow_rx(void* ctx, const can_Message_t& msg) {
 
     DualOptFlowSnapshot_t snapshot = g_optflow_snapshot;
     if (msg.id == kOptFlowCanIdLeft) {
-        snapshot.left_x = -y;
-        snapshot.left_y = -x;
+        snapshot.left_x = x;
+        snapshot.left_y = -y;
         snapshot.valid_mask |= 0x01;
+        snapshot.left_tick_ms = HAL_GetTick(); // Record left separate timestamp
     } else {
-        snapshot.right_x = -y;
+        snapshot.right_x = y;
         snapshot.right_y = -x;
         snapshot.valid_mask |= 0x02;
+        snapshot.right_tick_ms = HAL_GetTick(); // Record right separate timestamp
     }
-    snapshot.tick_ms = HAL_GetTick();
+    snapshot.tick_ms = HAL_GetTick(); // Keep common timestamp for process
     g_optflow_snapshot = snapshot;
 
     if (q_optflow_dataHandle != nullptr) {

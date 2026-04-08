@@ -23,7 +23,7 @@ namespace {
 
 constexpr unsigned int kOptFlowMaskLeft = 0x01u;
 constexpr unsigned int kOptFlowMaskRight = 0x02u;
-constexpr float kOptFlowHalfBaselineMm = 16.3f;
+constexpr float kOptFlowHalfBaselineMm = 34.0f;
 constexpr float kDualOptFlowBaselineMm = 2.0f * kOptFlowHalfBaselineMm;
 
 struct OptFlowSideState {
@@ -91,7 +91,8 @@ float robot_pos_x_mm, robot_pos_y_mm;
 float flow_px, flow_py, flow_yaw;
 unsigned int mouse_time_ms;
 unsigned int optflow_valid_mask;
-
+unsigned int mouse_left_tick_ms;  // 新增：左路接收时间戳
+unsigned int mouse_right_tick_ms; // 新增：右路接收时间戳
 
 extern "C" {
 
@@ -118,6 +119,8 @@ void StartOptFlowRxTask(void *argument) {
             dual_flow_right_y  = snapshot.right_y;
             optflow_valid_mask = snapshot.valid_mask;
             mouse_time_ms      = snapshot.tick_ms;
+            mouse_left_tick_ms   = snapshot.left_tick_ms;
+            mouse_right_tick_ms  = snapshot.right_tick_ms;
 
             // --------------------------------------------------
             // [NEW] 组装 Component 输入，调用 process
@@ -128,6 +131,8 @@ void StartOptFlowRxTask(void *argument) {
             data.right_x    = snapshot.right_x;
             data.right_y    = snapshot.right_y;
             data.tick_ms    = snapshot.tick_ms;
+            data.left_tick_ms  = snapshot.left_tick_ms;
+            data.right_tick_ms = snapshot.right_tick_ms;
             data.valid_mask = snapshot.valid_mask;
 
             // 新增：填充 IMU 字段

@@ -11,7 +11,7 @@
 //   原: OPTFLOW_OFFSET_X / OPTFLOW_OFFSET_Y (单光流安装偏移)
 //   现: 双光流基线半长，单位 mm，对应 md 推导中的 l
 // ============================================================
-#define OPTFLOW_HALF_BASELINE_MM (16.3f)
+#define OPTFLOW_HALF_BASELINE_MM (34.0f)
 
 // [UNCHANGED] valid_mask 位定义
 #define OPTFLOW_MASK_LEFT  (0x01u)
@@ -52,6 +52,8 @@ public:
         float        right_y;
         unsigned int tick_ms;
         unsigned int valid_mask;
+        unsigned int left_tick_ms;   // Left separate timestamp 
+        unsigned int right_tick_ms;  // Right separate timestamp 
         // --- 新增 IMU 字段 ---
         float imu_acc_x;   // 本体坐标系加速度 X，m/s²（BMI088 输出）
         float imu_acc_y;   // 本体坐标系加速度 Y，m/s²

@@ -16,9 +16,11 @@ struct DualOptFlowSnapshot_t {
 	float right_y;
 	uint32_t valid_mask;
 	uint32_t tick_ms;
+    uint32_t left_tick_ms;   // <-- Left receive timestamp
+    uint32_t right_tick_ms;  // <-- Right receive timestamp
 };
 
-static_assert(sizeof(DualOptFlowSnapshot_t) == 24, "DualOptFlowSnapshot_t size must match RTOS queue item size");
+static_assert(sizeof(DualOptFlowSnapshot_t) == 32, "DualOptFlowSnapshot_t size must match RTOS queue item size");
 
 // CAN message callbacks for ZCAN subscriptions
 void on_optflow_rx(void* ctx, const can_Message_t& msg);

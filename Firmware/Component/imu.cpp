@@ -71,18 +71,13 @@ void IMU::decode_bmi088(const bmi088_raw_data_t *acc, const bmi088_raw_data_t *g
 
     // Sensor-to-vehicle remap:
     // vehicle_x = -sensor_y, vehicle_y = sensor_x, vehicle_z = sensor_z.
-    data_[kAccX] = -acc_sy;
-    data_[kAccY] =  acc_sx;
+    data_[kAccX] =  acc_sy;
+    data_[kAccY] =  -acc_sx;
     data_[kAccZ] =  acc_sz;
 
-    data_[kOmegaX] = -gyro_sy;
-    data_[kOmegaY] =  gyro_sx;
+    data_[kOmegaX] =  gyro_sy;
+    data_[kOmegaY] =  -gyro_sx;
     data_[kOmegaZ] =  gyro_sz;
     
-    // Note: BMI088 does not provide Euler angles directly
-    // Angles are typically computed by firmware/external algorithm
-    // For now, keep them as zeros or indicate they need external computation
-    data_[kAngleX] = 0.0f;
-    data_[kAngleY] = 0.0f;
-    data_[kAngleZ] = 0.0f;
+
 }
