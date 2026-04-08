@@ -43,7 +43,6 @@ void StartTelemetryTask(void *argument) {
         if (osMutexAcquire(mtx_robot_stateHandle, 10) == osOK) {
             
             // Monitor optical flow timing
-            extern uint32_t mouse_time_ms;
             if (mouse_time_ms != ts.optflow_last) {
                 ts.optflow_delay = current_time - mouse_time_ms;
                 ts.optflow_last = mouse_time_ms;

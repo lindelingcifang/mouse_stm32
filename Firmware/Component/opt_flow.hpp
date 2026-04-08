@@ -85,6 +85,11 @@ public:
         // 每帧原始角度增量（调试用）
         float raw_dtheta;
 
+        // 纯双光流积分得到的中心位姿（不依赖 IMU/KF）
+        float flow_px;
+        float flow_py;
+        float flow_yaw;
+
         // 时间
         unsigned int time_ms;
         unsigned int last_time_ms;

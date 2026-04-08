@@ -62,6 +62,19 @@ extern volatile uint32_t imu_dbg_update_count;
 
 extern volatile uint8_t bmi088_init_ok;
 
+extern float body_vx;
+extern float body_vy;
+extern float omega_z;
+extern float raw_vx;
+extern float raw_vy;
+extern float robot_pos_x_mm;
+extern float robot_pos_y_mm;
+extern float flow_px;
+extern float flow_py;
+extern float flow_yaw;
+extern unsigned int mouse_time_ms;
+extern unsigned int optflow_valid_mask;
+
 #endif // __cplusplus
 
 #endif // __Z_MAIN_H

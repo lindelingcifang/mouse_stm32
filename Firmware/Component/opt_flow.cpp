@@ -401,6 +401,10 @@ void OptFlow::process(const Data_t& data) {
     state_.dt_s         = dt_s;
     state_.last_time_ms = last_time_ms_;
 
+    float frame_dx_robot = 0.0f;
+    float frame_dy_robot = 0.0f;
+    float frame_dtheta = 0.0f;
+
     // ----------------------------------------------------------
     // 根据 valid_mask 分情况处理
     // ----------------------------------------------------------
@@ -436,6 +440,9 @@ void OptFlow::process(const Data_t& data) {
         state_.body_vx = dx_robot / dt_s;
         state_.body_vy = dy_robot / dt_s;
         state_.omega_z = dtheta   / dt_s;
+        frame_dx_robot = dx_robot;
+        frame_dy_robot = dy_robot;
+        frame_dtheta   = dtheta;
 
     } else if (have_left) {
         // ======================================================
@@ -453,6 +460,9 @@ void OptFlow::process(const Data_t& data) {
         state_.body_vy    = dy1 / dt_s;
         state_.omega_z    = 0.0f;
         state_.raw_dtheta = 0.0f;
+        frame_dx_robot = dx1;
+        frame_dy_robot = dy1;
+        frame_dtheta   = 0.0f;
 
     } else if (have_right) {
         // ======================================================
@@ -470,6 +480,9 @@ void OptFlow::process(const Data_t& data) {
         state_.body_vy    = dy2 / dt_s;
         state_.omega_z    = 0.0f;
         state_.raw_dtheta = 0.0f;
+        frame_dx_robot = dx2;
+        frame_dy_robot = dy2;
+        frame_dtheta   = 0.0f;
 
     } else {
         // ======================================================
@@ -483,7 +496,21 @@ void OptFlow::process(const Data_t& data) {
         state_.body_vy    = 0.0f;
         state_.omega_z    = 0.0f;
         state_.raw_dtheta = 0.0f;
+        frame_dx_robot = 0.0f;
+        frame_dy_robot = 0.0f;
+        frame_dtheta   = 0.0f;
     }
+
+    // 决定位移积分需要的角度增量（使用 IMU 数据）
+    const float actual_dtheta = data.imu_valid ? (data.imu_omega_z * dt_s) : frame_dtheta;
+
+    // 直接用双光流本体位移增量积分中心位姿
+    const float theta_mid = state_.flow_yaw + 0.5f * actual_dtheta;
+    const float c = cosf(theta_mid);
+    const float s = sinf(theta_mid);
+    state_.flow_px += frame_dx_robot * c + frame_dy_robot * s;
+    state_.flow_py += -frame_dx_robot * s + frame_dy_robot * c;
+    state_.flow_yaw += actual_dtheta;
 
     apply_velocity_filter(state_, previous_state);
 

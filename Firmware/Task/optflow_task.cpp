@@ -87,6 +87,8 @@ float dual_flow_right_vx;
 float dual_flow_right_vy;
 float raw_vx, raw_vy;
 float body_vx, body_vy, omega_z;
+float robot_pos_x_mm, robot_pos_y_mm;
+float flow_px, flow_py, flow_yaw;
 unsigned int mouse_time_ms;
 unsigned int optflow_valid_mask;
 
@@ -155,7 +157,12 @@ void StartOptFlowRxTask(void *argument) {
             // body_vx/vy/omega_z：机器人本体速度，与单光流变量命名保持一致
             body_vx = s.kf_vx;
             body_vy = s.kf_vy;
-            omega_z = s.kf_omega_z;
+            omega_z = s.omega_z;
+            robot_pos_x_mm = s.flow_px;
+            robot_pos_y_mm = s.flow_py;
+            flow_px = s.flow_px;
+            flow_py = s.flow_py;
+            flow_yaw = s.flow_yaw;
 
             // raw 保留原始光流，方便调试对比
             raw_vx = s.body_vx;
