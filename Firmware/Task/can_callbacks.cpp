@@ -38,8 +38,8 @@ void on_optflow_rx(void* ctx, const can_Message_t& msg) {
         snapshot.valid_mask |= 0x01;
         snapshot.left_tick_ms = HAL_GetTick(); // Record left separate timestamp
     } else {
-        snapshot.right_x = y;
-        snapshot.right_y = -x;
+        snapshot.right_x = x;
+        snapshot.right_y = -y;
         snapshot.valid_mask |= 0x02;
         snapshot.right_tick_ms = HAL_GetTick(); // Record right separate timestamp
     }
