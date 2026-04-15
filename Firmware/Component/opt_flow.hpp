@@ -20,8 +20,8 @@
 class Kalman2DPosVel {
 public:
     Kalman2DPosVel();
-    void setNoise(float q_pos, float q_vel, float r_vel, float r_pos);
-    void init(float px0, float py0, float vx0, float vy0, float p0);
+    void setNoise(float q_pos, float q_vel, float r_vel, float r_pos, float q_bias_ax = 0.0001f, float q_bias_ay = 0.0001f);
+    void init(float px0, float py0, float vx0, float vy0, float p0, float bx0 = 0.0f, float by0 = 0.0f);
     void predict(float ax, float ay, float dt);   // IMU 加速度预测
     void updateVel(float vx_meas, float vy_meas); // 光流速度更新
     void updatePos(float px_meas, float py_meas); // 光流位置更新（可选）
@@ -29,12 +29,14 @@ public:
     float py() const { return x_[1]; }
     float vx() const { return x_[2]; }
     float vy() const { return x_[3]; }
+    float bax() const { return x_[4]; }
+    float bay() const { return x_[5]; }
 private:
-    float Q_[4];   // 过程噪声对角线
+    float Q_[6];   // 过程噪声对角线
     float Rv_[2];  // 速度观测噪声
     float Rp_[2];  // 位置观测噪声
-    float x_[4];   // 状态 [px, py, vx, vy]（单位：mm 和 mm/s）
-    float P_[16];  // 协方差矩阵（行主序）
+    float x_[6];   // 状态 [px, py, vx, vy, bx, by]（单位：mm 和 mm/s, mm/s^2）
+    float P_[36];  // 协方差矩阵（行主序，6x6）
     // 注意：原代码用 Qd_ 命名，统一改为 Q_ 避免混淆
 };
 

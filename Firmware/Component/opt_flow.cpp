@@ -80,163 +80,167 @@ float Kalman1D::update(float z) {
 // ============================================================
 
 Kalman2DPosVel::Kalman2DPosVel() {
-    setNoise(0.1f, 5.0f, 300.0f, 1e6f);
-    init(0.0f, 0.0f, 0.0f, 0.0f, 500.0f);
+    setNoise(0.1f, 5.0f, 300.0f, 1e6f, 0.1f, 0.1f);
+    init(0.0f, 0.0f, 0.0f, 0.0f, 500.0f, 0.0f, 0.0f);
 }
 
-void Kalman2DPosVel::setNoise(float q_pos, float q_vel, float r_vel, float r_pos) {
-    Q_[0] = q_pos; Q_[1] = q_pos; Q_[2] = q_vel; Q_[3] = q_vel;
+void Kalman2DPosVel::setNoise(float q_pos, float q_vel, float r_vel, float r_pos, float q_bias_ax, float q_bias_ay) {
+    Q_[0] = q_pos; Q_[1] = q_pos; Q_[2] = q_vel; Q_[3] = q_vel; Q_[4] = q_bias_ax; Q_[5] = q_bias_ay;
     Rv_[0] = r_vel; Rv_[1] = r_vel;
     Rp_[0] = r_pos; Rp_[1] = r_pos;
 }
 
-void Kalman2DPosVel::init(float px0, float py0, float vx0, float vy0, float p0) {
-    x_[0] = px0; x_[1] = py0; x_[2] = vx0; x_[3] = vy0;
-    for (int i = 0; i < 16; ++i) P_[i] = 0.0f;
-    P_[0] = p0; P_[5] = p0; P_[10] = p0; P_[15] = p0;
+void Kalman2DPosVel::init(float px0, float py0, float vx0, float vy0, float p0, float bx0, float by0) {
+    x_[0] = px0; x_[1] = py0; x_[2] = vx0; x_[3] = vy0; x_[4] = bx0; x_[5] = by0;
+    for (int i = 0; i < 36; ++i) P_[i] = 0.0f;
+    P_[0] = p0; P_[7] = p0; P_[14] = p0; P_[21] = p0; P_[28] = p0; P_[35] = p0;
 }
 
 void Kalman2DPosVel::predict(float ax, float ay, float dt) {
     if (dt <= 0.0f) return;
     const float dt2_2 = 0.5f * dt * dt;
-    float px = x_[0] + dt * x_[2] + dt2_2 * ax;
-    float py = x_[1] + dt * x_[3] + dt2_2 * ay;
-    float vx = x_[2] + dt * ax;
-    float vy = x_[3] + dt * ay;
+    
+    // 状态外推，积分时扣除偏置
+    float eff_ax = ax - x_[4];
+    float eff_ay = ay - x_[5];
+    
+    float px = x_[0] + dt * x_[2] + dt2_2 * eff_ax;
+    float py = x_[1] + dt * x_[3] + dt2_2 * eff_ay;
+    float vx = x_[2] + dt * eff_ax;
+    float vy = x_[3] + dt * eff_ay;
     x_[0] = px; x_[1] = py; x_[2] = vx; x_[3] = vy;
-    float AP[16];
-    AP[0]  = P_[0] + dt * P_[8];
-    AP[1]  = P_[1] + dt * P_[9];
-    AP[2]  = P_[2] + dt * P_[10];
-    AP[3]  = P_[3] + dt * P_[11];
-    AP[4]  = P_[4] + dt * P_[12];
-    AP[5]  = P_[5] + dt * P_[13];
-    AP[6]  = P_[6] + dt * P_[14];
-    AP[7]  = P_[7] + dt * P_[15];
-    AP[8]  = P_[8];
-    AP[9]  = P_[9];
-    AP[10] = P_[10];
-    AP[11] = P_[11];
-    AP[12] = P_[12];
-    AP[13] = P_[13];
-    AP[14] = P_[14];
-    AP[15] = P_[15];
-    float Pn[16];
-    Pn[0]  = AP[0];
-    Pn[4]  = AP[4];
-    Pn[8]  = AP[8];
-    Pn[12] = AP[12];
-    Pn[1]  = AP[1];
-    Pn[5]  = AP[5];
-    Pn[9]  = AP[9];
-    Pn[13] = AP[13];
-    Pn[2]  = AP[0] * dt + AP[2];
-    Pn[6]  = AP[4] * dt + AP[6];
-    Pn[10] = AP[8] * dt + AP[10];
-    Pn[14] = AP[12] * dt + AP[14];
-    Pn[3]  = AP[1] * dt + AP[3];
-    Pn[7]  = AP[5] * dt + AP[7];
-    Pn[11] = AP[9] * dt + AP[11];
-    Pn[15] = AP[13] * dt + AP[15];
+    // 偏置项 b_ax, b_ay 保持不变
+
+    // F 矩阵 (6x6) 的非零元素：对角线为 1，加上 F(0,2)=dt, F(1,3)=dt, F(2,4)=-dt, F(3,5)=-dt, F(0,4)=-dt2_2, F(1,5)=-dt2_2
+    // 计算 P = F * P * F^T + Q
+    // 为了简化，使用中间变量计算 F * P (存为 FP，6x6) 和 Pn (6x6)
+    float FP[36];
+    for(int j=0; j<6; ++j) {
+        FP[0*6 + j] = P_[0*6 + j] + dt * P_[2*6 + j] - dt2_2 * P_[4*6 + j];
+        FP[1*6 + j] = P_[1*6 + j] + dt * P_[3*6 + j] - dt2_2 * P_[5*6 + j];
+        FP[2*6 + j] = P_[2*6 + j] - dt * P_[4*6 + j];
+        FP[3*6 + j] = P_[3*6 + j] - dt * P_[5*6 + j];
+        FP[4*6 + j] = P_[4*6 + j];
+        FP[5*6 + j] = P_[5*6 + j];
+    }
+    
+    // 计算 FP * F^T
+    float Pn[36];
+    for(int i=0; i<6; ++i) {
+        Pn[i*6 + 0] = FP[i*6 + 0] + dt * FP[i*6 + 2] - dt2_2 * FP[i*6 + 4];
+        Pn[i*6 + 1] = FP[i*6 + 1] + dt * FP[i*6 + 3] - dt2_2 * FP[i*6 + 5];
+        Pn[i*6 + 2] = FP[i*6 + 2] - dt * FP[i*6 + 4];
+        Pn[i*6 + 3] = FP[i*6 + 3] - dt * FP[i*6 + 5];
+        Pn[i*6 + 4] = FP[i*6 + 4];
+        Pn[i*6 + 5] = FP[i*6 + 5];
+    }
+    
+    // 加上过程噪声 Q
     Pn[0]  += Q_[0];
-    Pn[5]  += Q_[1];
-    Pn[10] += Q_[2];
-    Pn[15] += Q_[3];
-    for (int i = 0; i < 16; ++i) P_[i] = Pn[i];
+    Pn[7]  += Q_[1];
+    Pn[14] += Q_[2];
+    Pn[21] += Q_[3];
+    Pn[28] += Q_[4];
+    Pn[35] += Q_[5];
+    
+    for (int i = 0; i < 36; ++i) P_[i] = Pn[i];
 }
 
 void Kalman2DPosVel::updateVel(float vx_meas, float vy_meas) {
     float y0 = vx_meas - x_[2];
     float y1 = vy_meas - x_[3];
-    float S00 = P_[10] + Rv_[0];
-    float S01 = P_[11];
-    float S10 = P_[14];
-    float S11 = P_[15] + Rv_[1];
+    
+    // H (2x6) : 只提取 vx 和 vy
+    // H(0,:) = [0 0 1 0 0 0]
+    // H(1,:) = [0 0 0 1 0 0]
+    
+    // S = H * P * H^T + R -> P 的 2,3 行列加上 R
+    float S00 = P_[2*6 + 2] + Rv_[0];
+    float S01 = P_[2*6 + 3];
+    float S10 = P_[3*6 + 2];
+    float S11 = P_[3*6 + 3] + Rv_[1];
+    
     float det = S00 * S11 - S01 * S10;
     if (det == 0.0f) return;
     float invS00 =  S11 / det;
     float invS01 = -S01 / det;
     float invS10 = -S10 / det;
     float invS11 =  S00 / det;
-    float PHt[8];
-    PHt[0] = P_[2];  PHt[1] = P_[3];
-    PHt[2] = P_[6];  PHt[3] = P_[7];
-    PHt[4] = P_[10]; PHt[5] = P_[11];
-    PHt[6] = P_[14]; PHt[7] = P_[15];
-    float K0 = PHt[0] * invS00 + PHt[1] * invS10;
-    float K1 = PHt[0] * invS01 + PHt[1] * invS11;
-    float K2 = PHt[2] * invS00 + PHt[3] * invS10;
-    float K3 = PHt[2] * invS01 + PHt[3] * invS11;
-    float K4 = PHt[4] * invS00 + PHt[5] * invS10;
-    float K5 = PHt[4] * invS01 + PHt[5] * invS11;
-    float K6 = PHt[6] * invS00 + PHt[7] * invS10;
-    float K7 = PHt[6] * invS01 + PHt[7] * invS11;
-    x_[0] += K0 * y0 + K1 * y1;
-    x_[1] += K2 * y0 + K3 * y1;
-    x_[2] += K4 * y0 + K5 * y1;
-    x_[3] += K6 * y0 + K7 * y1;
-    float KH_col2_0 = K0; float KH_col3_0 = K1;
-    float KH_col2_1 = K2; float KH_col3_1 = K3;
-    float KH_col2_2 = K4; float KH_col3_2 = K5;
-    float KH_col2_3 = K6; float KH_col3_3 = K7;
-    float Pn[16];
-    for (int i = 0; i < 16; ++i) Pn[i] = P_[i];
-    Pn[0*4 + 2] = P_[2]  - (KH_col2_0 * P_[10] + KH_col3_0 * P_[14]);
-    Pn[1*4 + 2] = P_[6]  - (KH_col2_1 * P_[10] + KH_col3_1 * P_[14]);
-    Pn[2*4 + 2] = P_[10] - (KH_col2_2 * P_[10] + KH_col3_2 * P_[14]);
-    Pn[3*4 + 2] = P_[14] - (KH_col2_3 * P_[10] + KH_col3_3 * P_[14]);
-    Pn[0*4 + 3] = P_[3]  - (KH_col2_0 * P_[11] + KH_col3_0 * P_[15]);
-    Pn[1*4 + 3] = P_[7]  - (KH_col2_1 * P_[11] + KH_col3_1 * P_[15]);
-    Pn[2*4 + 3] = P_[11] - (KH_col2_2 * P_[11] + KH_col3_2 * P_[15]);
-    Pn[3*4 + 3] = P_[15] - (KH_col2_3 * P_[11] + KH_col3_3 * P_[15]);
-    Pn[0] = P_[0] - (K0 * P_[2] + K1 * P_[3]);
-    Pn[1] = P_[1] - (K0 * P_[6] + K1 * P_[7]);
-    Pn[4] = P_[4] - (K2 * P_[2] + K3 * P_[3]);
-    Pn[5] = P_[5] - (K2 * P_[6] + K3 * P_[7]);
-    for (int i = 0; i < 16; ++i) P_[i] = Pn[i];
+    
+    // PHt = P * H^T (6x2)
+    // PHt 的第 0 列对应 P 的第 2 列 (P_[:,2])
+    // PHt 的第 1 列对应 P 的第 3 列 (P_[:,3])
+    float PHt[12];
+    for (int i=0; i<6; ++i) {
+        PHt[i*2 + 0] = P_[i*6 + 2];
+        PHt[i*2 + 1] = P_[i*6 + 3];
+    }
+    
+    // K = PHt * invS (6x2)
+    float K[12];
+    for (int i=0; i<6; ++i) {
+        K[i*2 + 0] = PHt[i*2 + 0] * invS00 + PHt[i*2 + 1] * invS10;
+        K[i*2 + 1] = PHt[i*2 + 0] * invS01 + PHt[i*2 + 1] * invS11;
+    }
+    
+    // 更新状态
+    for (int i=0; i<6; ++i) {
+        x_[i] += K[i*2 + 0] * y0 + K[i*2 + 1] * y1;
+    }
+    
+    // 更新协方差: P = P - K * H * P
+    // K * H (6x6), 只有第 2, 3 列非零
+    // (K*H*P)(i, j) = K(i, 0) * P(2, j) + K(i, 1) * P(3, j)
+    float Pn[36];
+    for (int i=0; i<6; ++i) {
+        for (int j=0; j<6; ++j) {
+            Pn[i*6 + j] = P_[i*6 + j] - (K[i*2 + 0] * P_[2*6 + j] + K[i*2 + 1] * P_[3*6 + j]);
+        }
+    }
+    for (int i = 0; i < 36; ++i) P_[i] = Pn[i];
 }
 
 void Kalman2DPosVel::updatePos(float px_meas, float py_meas) {
     float y0 = px_meas - x_[0];
     float y1 = py_meas - x_[1];
+    
+    // H(0,:) = [1 0 0 0 0 0]
+    // H(1,:) = [0 1 0 0 0 0]
     float S00 = P_[0] + Rp_[0];
     float S01 = P_[1];
-    float S10 = P_[4];
-    float S11 = P_[5] + Rp_[1];
+    float S10 = P_[6];
+    float S11 = P_[7] + Rp_[1];
+    
     float det = S00 * S11 - S01 * S10;
     if (det == 0.0f) return;
     float invS00 =  S11 / det;
     float invS01 = -S01 / det;
     float invS10 = -S10 / det;
     float invS11 =  S00 / det;
-    float PHt[8];
-    PHt[0] = P_[0];  PHt[1] = P_[1];
-    PHt[2] = P_[4];  PHt[3] = P_[5];
-    PHt[4] = P_[8];  PHt[5] = P_[9];
-    PHt[6] = P_[12]; PHt[7] = P_[13];
-    float K0 = PHt[0] * invS00 + PHt[1] * invS10;
-    float K1 = PHt[0] * invS01 + PHt[1] * invS11;
-    float K2 = PHt[2] * invS00 + PHt[3] * invS10;
-    float K3 = PHt[2] * invS01 + PHt[3] * invS11;
-    float K4 = PHt[4] * invS00 + PHt[5] * invS10;
-    float K5 = PHt[4] * invS01 + PHt[5] * invS11;
-    float K6 = PHt[6] * invS00 + PHt[7] * invS10;
-    float K7 = PHt[6] * invS01 + PHt[7] * invS11;
-    x_[0] += K0 * y0 + K1 * y1;
-    x_[1] += K2 * y0 + K3 * y1;
-    x_[2] += K4 * y0 + K5 * y1;
-    x_[3] += K6 * y0 + K7 * y1;
-    float Pn[16];
-    for (int i = 0; i < 16; ++i) Pn[i] = P_[i];
-    Pn[0]  = P_[0]  - (K0 * P_[0] + K1 * P_[4]);
-    Pn[4]  = P_[4]  - (K2 * P_[0] + K3 * P_[4]);
-    Pn[8]  = P_[8]  - (K4 * P_[0] + K5 * P_[4]);
-    Pn[12] = P_[12] - (K6 * P_[0] + K7 * P_[4]);
-    Pn[1]  = P_[1]  - (K0 * P_[1] + K1 * P_[5]);
-    Pn[5]  = P_[5]  - (K2 * P_[1] + K3 * P_[5]);
-    Pn[9]  = P_[9]  - (K4 * P_[1] + K5 * P_[5]);
-    Pn[13] = P_[13] - (K6 * P_[1] + K7 * P_[5]);
-    for (int i = 0; i < 16; ++i) P_[i] = Pn[i];
+    
+    float PHt[12];
+    for (int i=0; i<6; ++i) {
+        PHt[i*2 + 0] = P_[i*6 + 0];
+        PHt[i*2 + 1] = P_[i*6 + 1];
+    }
+    
+    float K[12];
+    for (int i=0; i<6; ++i) {
+        K[i*2 + 0] = PHt[i*2 + 0] * invS00 + PHt[i*2 + 1] * invS10;
+        K[i*2 + 1] = PHt[i*2 + 0] * invS01 + PHt[i*2 + 1] * invS11;
+    }
+    
+    for (int i=0; i<6; ++i) {
+        x_[i] += K[i*2 + 0] * y0 + K[i*2 + 1] * y1;
+    }
+    
+    float Pn[36];
+    for (int i=0; i<6; ++i) {
+        for (int j=0; j<6; ++j) {
+            Pn[i*6 + j] = P_[i*6 + j] - (K[i*2 + 0] * P_[0*6 + j] + K[i*2 + 1] * P_[1*6 + j]);
+        }
+    }
+    for (int i = 0; i < 36; ++i) P_[i] = Pn[i];
 }
 
 
